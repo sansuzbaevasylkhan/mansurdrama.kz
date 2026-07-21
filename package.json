@@ -1,0 +1,51 @@
+{
+  "name": "mansurdrama",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "prisma generate --schema=prisma/schema.sqlite.prisma && next dev",
+    "dev:prod": "prisma generate && next dev",
+    "build": "prisma generate --schema=prisma/schema.sqlite.prisma && next build",
+    "build:prod": "prisma generate && next build",
+    "start": "next start",
+    "lint": "next lint",
+    "prisma:generate": "prisma generate",
+    "prisma:generate:sqlite": "prisma generate --schema=prisma/schema.sqlite.prisma",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy",
+    "prisma:push": "prisma db push",
+    "prisma:push:sqlite": "prisma db push --schema=prisma/schema.sqlite.prisma",
+    "prisma:studio": "prisma studio"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^3.9.0",
+    "@prisma/client": "^5.20.0",
+    "bcryptjs": "^2.4.3",
+    "clsx": "^2.1.1",
+    "firebase": "^12.16.0",
+    "firebase-admin": "^14.2.0",
+    "framer-motion": "^11.5.4",
+    "jose": "^5.9.3",
+    "lucide-react": "^0.439.0",
+    "next": "15.0.0",
+    "react": "19.0.0-rc-69d4b800-20241021",
+    "react-dom": "19.0.0-rc-69d4b800-20241021",
+    "react-hook-form": "^7.53.0",
+    "sharp": "^0.33.5",
+    "tailwind-merge": "^2.5.2",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^22.5.5",
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.10.0",
+    "eslint-config-next": "15.0.0",
+    "postcss": "^8.4.47",
+    "prisma": "^5.20.0",
+    "tailwindcss": "^3.4.12",
+    "typescript": "^5.6.2"
+  }
+}

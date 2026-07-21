@@ -1,0 +1,88 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+
+# Next.js
+.next/
+out/
+build/
+
+# Production
+dist/
+
+# Misc
+.DS_Store
+*.pem
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Local env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Database
+prisma/*.db
+prisma/*.db-journal
+prisma/schema.prisma.backup
+
+# ============================================
+# Uploads — Firebase Storage-қа ауысты,
+# локалды файлдар репоға КІРМЕУІ керек
+# ============================================
+/public/uploads/posters/*
+!/public/uploads/posters/.gitkeep
+/public/uploads/videos/*
+!/public/uploads/videos/.gitkeep
+/uploads/posters/*
+!/uploads/posters/.gitkeep
+/uploads/videos/*
+!/uploads/videos/.gitkeep
+/public/uploads/*
+!/public/uploads/.gitkeep
+/uploads/*
+!/uploads/.gitkeep
+
+# ============================================
+# Ескі кодтар (Pages Router) — app/ (App Router) қолданылады
+# ============================================
+# src/ каталогындағы ескі Pages Router стиліндегі кодтар.
+# app/ — жаңа App Router. Екеуі қатар тұрса, Vercel build қате береді.
+# Болашақта керек болса, .gitignore-дан алып тастаңыз.
+/src/
+
+# ============================================
+# Backup / ескі кодтар
+# ============================================
+# src/app-backup — ескі App Router кодтары (Vercel build қате береді)
+/src/app-backup/
+# *.backup — кез-келген backup файлдар
+*.backup
+*.bak
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+logs/
+*.log
+
+.vercel

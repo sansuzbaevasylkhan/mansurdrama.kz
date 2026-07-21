@@ -1,0 +1,106 @@
+// Local development schema (SQLite).
+// Copy this file to schema.prisma when working locally:
+//   cp prisma/schema.sqlite.prisma prisma/schema.prisma
+// Then run: npx prisma migrate dev
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Drama {
+  id            String    @id @default(cuid())
+  title         String
+  slug          String    @unique
+  description   String?
+  posterUrl     String
+  totalEpisodes Int       @default(0)
+  views         Int       @default(0)
+  rating        Float     @default(0)
+  isPublished   Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  episodes        Episode[]
+  payments        Payment[]
+  unlockedContent UnlockedContent[]
+
+  @@index([slug])
+  @@index([createdAt])
+  @@index([isPublished])
+}
+
+model Episode {
+  id            String   @id @default(cuid())
+  episodeNumber Int
+  title         String
+  videoUrl      String
+  duration      Int      @default(0)
+  thumbnail     String?
+  views         Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  dramaId String
+  drama   Drama @relation(fields: [dramaId], references: [id], onDelete: Cascade)
+
+  @@unique([dramaId, episodeNumber])
+  @@index([dramaId])
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  avatar    String?
+  password  String   @default("")
+  role      String   @default("USER")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  payments       Payment[]
+  unlockedContent UnlockedContent[]
+
+  @@index([email])
+  @@index([createdAt])
+}
+
+model Payment {
+  id            String   @id @default(cuid())
+  userId        String
+  dramaId       String
+  type          String   // SINGLE_EPISODE | FULL_PACKAGE
+  episodeNumber Int?
+  receiptUrl    String
+  kaspiNumber   String
+  status        String   @default("PENDING") // PENDING | APPROVED | REJECTED
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  drama Drama @relation(fields: [dramaId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([userId])
+  @@index([dramaId])
+  @@index([createdAt])
+}
+
+model UnlockedContent {
+  id            String   @id @default(cuid())
+  userId        String
+  dramaId       String
+  episodeNumber Int?     // null = FULL_PACKAGE (барлық эпизодтар ашық)
+  createdAt     DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  drama Drama @relation(fields: [dramaId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dramaId, episodeNumber])
+  @@index([userId])
+  @@index([dramaId])
+}

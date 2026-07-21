@@ -1,0 +1,119 @@
+// Prisma schema for Mansur Drama streaming website
+// Production: PostgreSQL (Supabase / Neon / Vercel Postgres)
+// Local dev:  see prisma/schema.sqlite.prisma + `npm run dev`
+//
+// Supabase URL форматы:
+//   DATABASE_URL  = postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true
+//   DIRECT_URL    = postgresql://postgres:[password]@db.[ref].supabase.co:5432/postgres
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Drama {
+  id            String    @id @default(cuid())
+  title         String
+  slug          String    @unique
+  description   String?
+  posterUrl     String
+  totalEpisodes Int       @default(0)
+  views         Int       @default(0)
+  rating        Float     @default(0)
+  isPublished   Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  episodes        Episode[]
+  payments        Payment[]
+  unlockedContent UnlockedContent[]
+
+  @@index([slug])
+  @@index([createdAt])
+  @@index([isPublished])
+}
+
+enum PaymentType {
+  SINGLE_EPISODE
+  FULL_PACKAGE
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Episode {
+  id            String   @id @default(cuid())
+  episodeNumber Int
+  title         String
+  videoUrl      String
+  duration      Int      @default(0) // seconds
+  thumbnail     String?
+  views         Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  dramaId String
+  drama   Drama @relation(fields: [dramaId], references: [id], onDelete: Cascade)
+
+  @@unique([dramaId, episodeNumber])
+  @@index([dramaId])
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  userId        String
+  dramaId       String
+  type          PaymentType
+  episodeNumber Int?
+  receiptUrl    String
+  kaspiNumber   String
+  status        PaymentStatus @default(PENDING)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  drama Drama @relation(fields: [dramaId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([dramaId])
+  @@index([status])
+}
+
+model UnlockedContent {
+  id            String   @id @default(cuid())
+  userId        String
+  dramaId       String
+  episodeNumber Int?
+  createdAt     DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  drama Drama @relation(fields: [dramaId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dramaId, episodeNumber])
+  @@index([dramaId])
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  avatar    String?
+  password  String   @default("")
+  role      String   @default("USER") // USER or ADMIN
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  payments        Payment[]
+  unlockedContent UnlockedContent[]
+
+  @@index([email])
+  @@index([createdAt])
+}
