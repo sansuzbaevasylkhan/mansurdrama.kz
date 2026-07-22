@@ -3,6 +3,6 @@
   "framework": "nextjs",
   "regions": ["fra1"],
   "installCommand": "npm install",
-  "buildCommand": "prisma generate && next build",
+  "buildCommand": "prisma generate && prisma db push --skip-generate --accept-data-loss && next build",
   "outputDirectory": ".next"
 }
