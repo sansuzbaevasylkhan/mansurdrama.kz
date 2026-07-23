@@ -9,7 +9,7 @@
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/md.png",
       "resizeMode": "contain",
       "backgroundColor": "#0a0a10"
     },
@@ -59,7 +59,7 @@
       "router": {
         "origin": false
       },
-      "apiBaseUrl": "https://mansurdrama.vercel.app"
+      "apiBaseUrl": "https://mansurdrama-kz.vercel.app"
     }
   }
 }
