@@ -13,17 +13,19 @@
       "resizeMode": "contain",
       "backgroundColor": "#0a0a10"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "kz.mansurdrama.app"
+      "bundleIdentifier": "platform.kz.mansurdrama.app"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0a0a10"
       },
-      "package": "kz.mansurdrama.app",
+      "package": "platform.kz.mansurdrama.app",
       "permissions": [
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
@@ -36,25 +38,8 @@
       "bundler": "metro"
     },
     "plugins": [
-      "expo-router",
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "Чек скриншотын жүктеу үшін галереяға кіру керек."
-        }
-      ],
-      [
-        "expo-document-picker",
-        {
-          "iOS": {
-            "isEnabled": true
-          }
-        }
-      ]
+      "expo-router"
     ],
-    "experiments": {
-      "typedRoutes": true
-    },
     "extra": {
       "router": {
         "origin": false
