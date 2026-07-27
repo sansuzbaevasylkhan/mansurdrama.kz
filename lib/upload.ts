@@ -1,18 +1,18 @@
 /**
- * Файл жүктеу — Firebase Storage (продакшн) + локалды диск (dev fallback).
+ * Файл жүктеу — Supabase Storage (продакшн) + локалды диск (dev fallback).
  *
  * Стратегия:
- *   1) Егер Firebase Storage конфигурацияланған → Firebase Storage
+ *   1) Егер Supabase Storage конфигурацияланған → Supabase Storage
  *   2) Әйтпесе, локалды режим (Vercel емес) → public/uploads/...
  *
  * Vercel-де локалды жазу жұмыс істемейді (read-only), сондықтан
- * Firebase Storage-сыз деплой қате береді. Бұл — қажеттілік.
+ * Supabase Storage-сыз деплой қате береді. Бұл — қажеттілік.
  */
 
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { randomBytes } from "crypto";
-import { uploadFile as uploadToFirebase, isFirebaseStorageConfigured } from "./firebase-storage";
+import { uploadFile as uploadToSupabase, isSupabaseStorageConfigured } from "./supabase-storage";
 
 export type UploadSubdir = "posters" | "videos" | "avatars" | "payment-receipts";
 
@@ -136,16 +136,16 @@ export async function saveUploadedFile(
 ): Promise<SavedFile> {
   validateFile(file, subdir);
 
-  // Продакшнда немесе Firebase конфигурацияланған болса — Firebase Storage
-  if (isFirebaseStorageConfigured() && (isProduction() || isVercel())) {
-    return uploadToFirebase(file, subdir);
+  // Продакшнда немесе Supabase конфигурацияланған болса — Supabase Storage
+  if (isSupabaseStorageConfigured() && (isProduction() || isVercel())) {
+    return uploadToSupabase(file, subdir);
   }
 
   // Локалды dev — дискке жазу
   if (isVercel()) {
     throw new Error(
       "Vercel-де локалды файлдық жүйе жұмыс істемейді. " +
-      "Firebase Storage конфигурациясын қосыңыз (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY)."
+      "Supabase Storage конфигурациясын қосыңыз (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)."
     );
   }
 
@@ -153,15 +153,15 @@ export async function saveUploadedFile(
 }
 
 /**
- * Файлды жою — Firebase-тен немесе локалды дисктен.
+ * Файлды жою — Supabase Storage-тан немесе локалды дисктен.
  */
 export async function deleteUploadedFile(url: string): Promise<boolean> {
   if (!url) return false;
 
-  // Firebase URL-ы — Firebase-тен жою
-  if (url.includes("storage.googleapis.com") || url.includes("firebasestorage.googleapis.com")) {
-    const { deleteFile: deleteFromFirebase } = await import("./firebase-storage");
-    return deleteFromFirebase(url);
+  // Supabase Storage URL-ы — Supabase-тен жою
+  if (url.includes("/storage/v1/object/public/")) {
+    const { deleteFile: deleteFromSupabase } = await import("./supabase-storage");
+    return deleteFromSupabase(url);
   }
 
   // Локалды URL — дисктен жою (Vercel-де skip)
@@ -198,4 +198,4 @@ export function formatBytes(bytes: number): string {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 }
 
-export { isFirebaseStorageConfigured };
+export { isSupabaseStorageConfigured };

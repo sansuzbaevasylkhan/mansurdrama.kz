@@ -1,12 +1,10 @@
 /**
- * POST /api/firebase/track
+ * POST /api/track
  *
- * Қауіпсіз трекинг endpoint — клиенттен тікелей RTDB-ге жазудың орнына
- * осы proxy-ге жібереді. Мұнда:
+ * Дорама/эпизод көрулерін есептейтін endpoint.
  *   1) Zod-пен денені тексереміз
  *   2) IP бойынша rate-limit қолданамыз
- *   3) Admin SDK арқылы atomic increment жасаймыз
- *   4) Сәтсіз болса, Prisma-ға fallback жасаймыз (көрулерді жоғалтпау үшін)
+ *   3) Prisma арқылы atomic increment жасаймыз
  *
  * Body: { type: "view" | "play", dramaId: string, episodeId?: string }
  *
@@ -16,11 +14,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import {
-  incrementDramaView,
-  incrementEpisodePlay,
-  pushRecentEvent,
-} from "@/lib/firebase-helpers";
 import { getClientIp, rateLimit } from "@/lib/rate-limit";
 
 const trackSchema = z.object({
@@ -89,11 +82,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // ─── 4. RTDB-ге жазу (atomic transaction) ───
+  // ─── 4. Atomic increment ───
   let newTotal: number | null = null;
 
   if (type === "view") {
-    newTotal = await incrementDramaView(dramaId);
+    const updated = await prisma.drama.update({
+      where: { id: dramaId },
+      data: { views: { increment: 1 } },
+      select: { views: true },
+    });
+    newTotal = updated.views;
   } else if (type === "play") {
     if (!episodeId) {
       return NextResponse.json(
@@ -101,35 +99,13 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    newTotal = await incrementEpisodePlay(dramaId, episodeId);
+    const updated = await prisma.episode.update({
+      where: { id: episodeId },
+      data: { views: { increment: 1 } },
+      select: { views: true },
+    });
+    newTotal = updated.views;
   }
-
-  // ─── 5. Prisma-ға да жазу (fallback + негізгі есептеу) ───
-  // Бұл блок RTDB қол жетімді болмаса да, көрулердің жоғалмауын қамтамасыз етеді.
-  try {
-    if (type === "view") {
-      await prisma.drama.update({
-        where: { id: dramaId },
-        data: { views: { increment: 1 } },
-      });
-    } else if (type === "play" && episodeId) {
-      await prisma.episode.update({
-        where: { id: episodeId },
-        data: { views: { increment: 1 } },
-      });
-    }
-  } catch (err) {
-    // Prisma қатесі — RTDB-ге жаздық, сондыққа жалғастырамыз
-    console.error("[track] Prisma increment failed:", err);
-  }
-
-  // ─── 6. Recent events логы (push) ───
-  await pushRecentEvent({
-    type,
-    dramaId,
-    episodeId,
-    timestamp: Date.now(),
-  });
 
   return NextResponse.json({
     success: true,

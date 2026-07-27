@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAdminSession } from "@/lib/admin/auth";
-import { setSiteStats } from "@/lib/firebase-helpers";
 
 export async function GET() {
   try {
@@ -23,15 +22,6 @@ export async function GET() {
       totalUsers,
       totalViews: viewsAgg._sum.views || 0,
     };
-
-    // RTDB-ға да жазу — StatsOverview live жаңарта алады.
-    // Қате болса да, Prisma деректері қайтарылады (graceful degradation).
-    setSiteStats({
-      dramas: totalDramas,
-      episodes: totalEpisodes,
-      users: totalUsers,
-      views: stats.totalViews,
-    }).catch((err) => console.error("[stats] setSiteStats failed:", err));
 
     return NextResponse.json(stats);
   } catch (err) {

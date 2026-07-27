@@ -23,8 +23,6 @@
     "@supabase/supabase-js": "^2.110.8",
     "bcryptjs": "^2.4.3",
     "clsx": "^2.1.1",
-    "firebase": "^12.16.0",
-    "firebase-admin": "^14.2.0",
     "framer-motion": "^11.5.4",
     "jose": "^5.9.3",
     "lucide-react": "^0.460.0",

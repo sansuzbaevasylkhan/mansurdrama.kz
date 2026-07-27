@@ -1,4 +1,4 @@
-import { uploadFile, type SavedFile } from './firebase-storage';
+import { uploadFile, type SavedFile } from './supabase-storage';
 
 export type ReceiptUploadResult = SavedFile & { receiptUrl: string };
 

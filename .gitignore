@@ -44,7 +44,7 @@ prisma/*.db-journal
 prisma/schema.prisma.backup
 
 # ============================================
-# Uploads — Firebase Storage-қа ауысты,
+# Uploads — Supabase Storage-қа ауысты,
 # локалды файлдар репоға КІРМЕУІ керек
 # ============================================
 /public/uploads/posters/*

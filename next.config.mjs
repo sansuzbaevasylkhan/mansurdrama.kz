@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Supabase, Neon, Firebase Storage, Google и т.б. — осылар үшін сурет прокси ашық
+  // Supabase Storage, Google и т.б. — осылар үшін сурет прокси ашық
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '**' },
@@ -13,7 +13,7 @@ const nextConfig = {
       bodySizeLimit: '2gb',
     },
   },
-  // Vercel-де /uploads/* маршруттары қажет емес (Firebase Storage қолданылады),
+  // Vercel-де /uploads/* маршруттары қажет емес (Supabase Storage қолданылады),
   // бірақ локалды dev үшін кэш және range-headers сақтаймыз.
   async headers() {
     return [
