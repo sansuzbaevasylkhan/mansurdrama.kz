@@ -1,6 +1,8 @@
 import { create } from "zustand";
-import { userStore, type PublicUser } from "./user-store";
 import { apiFetch } from "./api";
+import { userStore, type PublicUser } from "./token-store";
+
+export type { PublicUser };
 
 interface UserState {
   user: PublicUser | null;
@@ -9,6 +11,7 @@ interface UserState {
   hydrated: boolean;
   hydrate: () => Promise<void>;
   login: (email: string, name?: string) => Promise<void>;
+  loginWithGoogle: (idToken: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -36,6 +39,20 @@ export const useUser = create<UserState>((set) => ({
       const res = await apiFetch<LoginResponse>("/api/auth/user-login", {
         method: "POST",
         body: { email, name },
+      });
+      await userStore.setToken(res.token);
+      await userStore.setUser(res.user);
+      set({ token: res.token, user: res.user });
+    } finally {
+      set({ loading: false });
+    }
+  },
+  async loginWithGoogle(idToken) {
+    set({ loading: true });
+    try {
+      const res = await apiFetch<LoginResponse>("/api/auth/google", {
+        method: "POST",
+        body: { idToken },
       });
       await userStore.setToken(res.token);
       await userStore.setUser(res.user);

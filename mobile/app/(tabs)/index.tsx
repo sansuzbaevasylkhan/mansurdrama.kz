@@ -2,8 +2,7 @@ import { View, Text, Image, Pressable, FlatList, ActivityIndicator, RefreshContr
 import { useEffect, useState } from "react";
 import { Link } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Play, Sparkles, Film, Tv } from "lucide-react-native";
-import { LinearGradient } from "expo-image";
+import { Play, Film, Tv } from "lucide-react-native";
 import { dramasApi } from "@/lib/endpoints";
 import type { Drama } from "@/lib/types";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -43,14 +42,11 @@ export default function CatalogScreen() {
         columnWrapperClassName="gap-3 px-4"
         contentContainerClassName="pb-24"
         ListHeaderComponent={
-          <View className="mb-4">
-            <Hero count={dramas.length} />
-            <View className="px-4 mt-4 mb-3 flex-row items-center justify-between">
-              <Text className="text-xl font-bold text-white">Каталог</Text>
-              <Text className="text-sm text-white/50">
-                {loading ? "Жүктелуде…" : `${dramas.length} дорама`}
-              </Text>
-            </View>
+          <View className="px-4 pt-4 mb-3 flex-row items-center justify-between">
+            <Text className="text-xl font-bold text-white">Каталог</Text>
+            <Text className="text-sm text-white/50">
+              {loading ? "Жүктелуде…" : `${dramas.length} дорама`}
+            </Text>
           </View>
         }
         renderItem={({ item }) => <DramaCard drama={item} />}
@@ -100,40 +96,6 @@ export default function CatalogScreen() {
         }
       />
     </SafeAreaView>
-  );
-}
-
-function Hero({ count }: { count: number }) {
-  return (
-    <View className="overflow-hidden">
-      <LinearGradient
-        colors={["rgba(236,72,153,0.10)", "transparent", "rgba(139,92,246,0.10)"]}
-        style={{ position: "absolute", inset: 0 }}
-      />
-      <View className="px-6 pt-12 pb-8 items-center">
-        <View className="flex-row items-center gap-1.5 rounded-full bg-white/5 border border-white/10 px-3 py-1">
-          <Sparkles size={12} color="#ec4899" />
-          <Text className="text-xs text-white/80">Жаңа маусым · {count}+ дорама</Text>
-        </View>
-        <Text className="mt-5 text-4xl font-extrabold text-center text-white">
-          Қысқа драмалар
-        </Text>
-        <Text className="mt-2 text-base text-center text-primary-400 font-bold">
-          әлеміне қош келдіңіз
-        </Text>
-        <Text className="mt-3 text-sm text-center text-white/60 px-2">
-          HD сапада, кез-келген құрылғыда. Тегін көру.
-        </Text>
-        <Link
-          href="/search"
-          className="mt-6 h-12 px-6 rounded-2xl bg-gradient-to-r from-primary-500 to-accent-500 flex-row items-center gap-2"
-          style={{ backgroundColor: "#ec4899" }}
-        >
-          <Play size={16} color="#fff" fill="#fff" />
-          <Text className="text-white font-semibold">Көруді бастау</Text>
-        </Link>
-      </View>
-    </View>
   );
 }
 

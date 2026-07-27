@@ -1,5 +1,5 @@
 import { View, Text, Pressable, ActivityIndicator } from "react-native";
-import { ResizeMode, Video, type VideoRef } from "expo-av";
+import { ResizeMode, Video } from "expo-av";
 import { Play, Pause, Volume2, VolumeX, Maximize } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { formatDuration } from "@/lib/utils";
@@ -12,7 +12,7 @@ interface Props {
 }
 
 export function VideoPlayer({ videoUrl, posterUrl, title, onLocked }: Props) {
-  const ref = useRef<VideoRef>(null);
+  const ref = useRef<Video>(null);
   const [status, setStatus] = useState<any>({});
   const [muted, setMuted] = useState(true);
   const [showControls, setShowControls] = useState(true);
@@ -41,9 +41,8 @@ export function VideoPlayer({ videoUrl, posterUrl, title, onLocked }: Props) {
   const onSeek = async (e: any) => {
     if (!ref.current || !status.duration) return;
     const x = e.nativeEvent.locationX;
-    const width = e.nativeEvent.target?.measure
-      ? (await ref.current.getStatusAsync()).positionMillis
-      : 1;
+    const seekStatus = await ref.current.getStatusAsync();
+    const width = seekStatus.isLoaded ? seekStatus.positionMillis : 1;
     // Өте қарапайым: percentage-ке байланысты емес, тек x/duration.
     // Нақты өлшем үшін onLayout + measure қажет — Expo-av өз progressBar-ын қолданады.
   };

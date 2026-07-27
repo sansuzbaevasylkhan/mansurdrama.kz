@@ -1,5 +1,5 @@
 import { apiFetch, tokenStore } from "./api";
-import { userStore, type PublicUser } from "./user-store";
+import { userStore, type PublicUser } from "./token-store";
 import type {
   Drama,
   Episode,

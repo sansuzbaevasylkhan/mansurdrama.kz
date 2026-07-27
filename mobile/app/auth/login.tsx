@@ -1,7 +1,6 @@
-import { View, Text, KeyboardAvoidingView, Platform, Pressable, Alert } from "react-native";
+import { View, Text, Image, KeyboardAvoidingView, Platform } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
-import { Mail, User, Loader2 } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useUser } from "@/lib/user-store";
 import { Input } from "@/components/ui/Input";
@@ -16,13 +15,12 @@ export default function UserLoginScreen() {
   const login = useUser((s) => s.login);
   const loading = useUser((s) => s.loading);
   const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const onSubmit = async () => {
     setError(null);
     try {
-      await login(email.trim(), name.trim() || undefined);
+      await login(email.trim());
       router.back();
     } catch (e: any) {
       setError(e?.message ?? "Кіру мүмкін болмады");
@@ -49,28 +47,18 @@ export default function UserLoginScreen() {
           style={{ backgroundColor: "rgba(19,19,22,0.7)" }}
         >
           <View className="items-center mb-6">
-            <View
-              className="h-14 w-14 rounded-2xl items-center justify-center mb-3"
-              style={{ backgroundColor: "#ec4899" }}
-            >
-              <User size={22} color="#fff" />
-            </View>
-            <Text className="text-2xl font-bold text-white">Кіру</Text>
-            <Text className="mt-1 text-sm text-white/60 text-center">
-              Email-іңізді енгізіңіз — автоматты тіркелу
+            <Image
+              source={require("@/assets/md.png")}
+              style={{ width: 72, height: 72, borderRadius: 18 }}
+              resizeMode="contain"
+            />
+            <Text className="mt-3 text-xl font-extrabold text-white">Mansur Drama</Text>
+            <Text className="mt-2 text-2xl font-bold text-white text-center">
+              Қош келіпсіздер!
             </Text>
           </View>
 
           <View className="gap-4">
-            <View>
-              <Text className="text-xs text-white/60 mb-2">Аты-жөніңіз (міндетті емес)</Text>
-              <Input
-                value={name}
-                onChangeText={setName}
-                placeholder="Иван Иванов"
-                autoFocus={false}
-              />
-            </View>
             <View>
               <Text className="text-xs text-white/60 mb-2">Email</Text>
               <Input
@@ -92,10 +80,6 @@ export default function UserLoginScreen() {
               className="w-full mt-2"
             />
           </View>
-
-          <Text className="mt-6 text-center text-[11px] text-white/40">
-            Тіркелгіңіз автоматты жасалады. Құпиясөз қажет емес.
-          </Text>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

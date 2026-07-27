@@ -1,4 +1,4 @@
-import { View, Text, Pressable, ActivityIndicator, Alert } from "react-native";
+import { View, Text, Pressable, ActivityIndicator, Alert, TextInput } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import { Lock, Upload, CheckCircle2, LogIn } from "lucide-react-native";

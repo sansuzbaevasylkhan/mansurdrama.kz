@@ -1,4 +1,4 @@
-import { userStore } from "./user-store";
+import { userStore } from "./token-store";
 import { API_BASE_URL } from "./config";
 
 export const tokenStore = {
