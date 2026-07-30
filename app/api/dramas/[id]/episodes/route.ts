@@ -6,6 +6,21 @@ import {
   updateDrama,
 } from '@/lib/db';
 
+/**
+ * Бөлімдер тізімін алу (mobile/веб плеер үшін — авторизация қажет емес).
+ */
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  const drama = await getDramaById(id);
+  if (!drama) {
+    return NextResponse.json({ error: 'Дорама табылмады' }, { status: 404 });
+  }
+  return NextResponse.json(drama.episodes);
+}
+
 interface IncomingEpisode {
   episodeNumber: number;
   title?: string;

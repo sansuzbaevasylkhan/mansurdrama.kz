@@ -3,11 +3,10 @@ import { useLocalSearchParams, Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
-import { ArrowLeft, Star, Eye, Film } from "lucide-react-native";
+import { ArrowLeft, Star, Eye, Film, Play } from "lucide-react-native";
 import { dramasApi } from "@/lib/endpoints";
 import type { Drama, Episode } from "@/lib/types";
 import { formatNumber } from "@/lib/utils";
-import { VideoPlayer } from "@/components/VideoPlayer";
 import { EpisodePaywall } from "@/components/EpisodePaywall";
 import { useUser } from "@/lib/user-store";
 
@@ -152,27 +151,38 @@ export default function DramaPage() {
                   );
                 }
                 return (
-                  <View
+                  <Pressable
                     key={ep.id}
-                    className="rounded-2xl border border-white/10 bg-white/[0.02] p-3"
+                    onPress={() =>
+                      router.push({
+                        pathname: "/watch/[episodeId]",
+                        params: {
+                          episodeId: ep.id,
+                          videoUrl: ep.videoUrl,
+                          posterUrl: drama.posterUrl,
+                          title: drama.title,
+                          subtitle: ep.title,
+                        },
+                      })
+                    }
+                    className="flex-row items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-3"
                   >
-                    <View className="flex-row items-center gap-2 mb-2">
-                      <View
-                        className="h-9 w-9 rounded-lg items-center justify-center"
-                        style={{ backgroundColor: "rgba(236,72,153,0.25)" }}
-                      >
-                        <Text className="text-sm font-bold text-white">{ep.episodeNumber}</Text>
-                      </View>
-                      <Text className="text-sm font-semibold text-white flex-1" numberOfLines={1}>
-                        {ep.title}
-                      </Text>
+                    <View
+                      className="h-9 w-9 rounded-lg items-center justify-center"
+                      style={{ backgroundColor: "rgba(236,72,153,0.25)" }}
+                    >
+                      <Text className="text-sm font-bold text-white">{ep.episodeNumber}</Text>
                     </View>
-                    <VideoPlayer
-                      videoUrl={ep.videoUrl}
-                      posterUrl={drama.posterUrl}
-                      title={`${drama.title} — ${ep.title}`}
-                    />
-                  </View>
+                    <Text className="text-sm font-semibold text-white flex-1" numberOfLines={1}>
+                      {ep.title}
+                    </Text>
+                    <View
+                      className="h-9 w-9 rounded-full items-center justify-center"
+                      style={{ backgroundColor: "#ec4899" }}
+                    >
+                      <Play size={14} color="#fff" fill="#fff" />
+                    </View>
+                  </Pressable>
                 );
               })}
             </View>

@@ -102,7 +102,7 @@ export default function CatalogScreen() {
 function DramaCard({ drama }: { drama: Drama }) {
   return (
     <Link href={`/drama/${drama.slug}`} asChild>
-      <Pressable className="flex-1 mb-3 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02]">
+      <Pressable className="flex-1 mb-2 overflow-hidden rounded-xl border border-white/10 bg-white/[0.02]">
         <View className="aspect-[2/3] w-full bg-dark-800 relative">
           {drama.posterUrl ? (
             <Image
@@ -112,7 +112,7 @@ function DramaCard({ drama }: { drama: Drama }) {
             />
           ) : (
             <View className="flex-1 items-center justify-center">
-              <Film color="rgba(255,255,255,0.3)" size={40} />
+              <Film color="rgba(255,255,255,0.3)" size={28} />
             </View>
           )}
           <View
@@ -123,27 +123,27 @@ function DramaCard({ drama }: { drama: Drama }) {
             }}
           />
           {drama.views > 0 ? (
-            <View className="absolute right-2 top-2 flex-row items-center gap-1 rounded-full bg-black/60 px-2 py-0.5">
-              <Play size={10} color="#fff" fill="#fff" />
-              <Text className="text-[11px] font-medium text-white">
+            <View className="absolute right-1.5 top-1.5 flex-row items-center gap-0.5 rounded-full bg-black/60 px-1.5 py-0.5">
+              <Play size={8} color="#fff" fill="#fff" />
+              <Text className="text-[9px] font-medium text-white">
                 {formatNumber(drama.views)}
               </Text>
             </View>
           ) : null}
-          <View className="absolute inset-x-0 bottom-0 p-3">
+          <View className="absolute inset-x-0 bottom-0 p-1.5">
             <Text
-              className="text-sm font-semibold text-white"
+              className="text-[11px] font-semibold text-white"
               numberOfLines={2}
             >
               {drama.title}
             </Text>
-            <View className="mt-1 flex-row items-center gap-1.5">
-              <Tv size={11} color="rgba(255,255,255,0.7)" />
-              <Text className="text-xs text-white/70">
+            <View className="mt-0.5 flex-row items-center gap-1">
+              <Tv size={9} color="rgba(255,255,255,0.7)" />
+              <Text className="text-[10px] text-white/70">
                 {drama.totalEpisodes} бөлім
               </Text>
               {drama.rating > 0 ? (
-                <Text className="text-xs text-amber-400">★ {drama.rating.toFixed(1)}</Text>
+                <Text className="text-[10px] text-amber-400">★ {drama.rating.toFixed(1)}</Text>
               ) : null}
             </View>
           </View>

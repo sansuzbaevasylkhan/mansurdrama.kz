@@ -204,13 +204,13 @@ export function DramasManager() {
               animate={{ opacity: 1, y: 0 }}
               className="flex items-center gap-4 rounded-xl border border-white/5 bg-white/5 p-3"
             >
-              <div className="h-16 w-12 shrink-0 overflow-hidden rounded-lg bg-dark-900">
+              <div className="h-10 w-8 shrink-0 overflow-hidden rounded-lg bg-dark-900">
                 {drama.posterUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={drama.posterUrl} alt={drama.title} className="h-full w-full object-cover" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center">
-                    <Film className="h-5 w-5 text-white/30" />
+                    <Film className="h-3.5 w-3.5 text-white/30" />
                   </div>
                 )}
               </div>
