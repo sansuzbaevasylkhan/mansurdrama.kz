@@ -41,7 +41,7 @@ export async function sendWelcomeEmail(params: {
   }
 
   const { to, name, password } = params;
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://mansurdrama-kz.vercel.app";
+  const siteUrl = "https://mansurdrama-kz.vercel.app";
 
   const passwordBlock = password
     ? `<p><strong>Уақытша құпия сөз:</strong> ${password}</p><p style="color:#888;font-size:13px">Бірінші кіргенде құпия сөзді өзгертуге кеңес береміз.</p>`
