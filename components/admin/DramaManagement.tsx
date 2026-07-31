@@ -492,10 +492,11 @@ function DramaFormDialog({
   };
 
   const uploadEpisodeVideo = (idx: number) =>
-    new Promise<boolean>((resolve) => {
+    new Promise<string | null>((resolve) => {
       const ep = episodes[idx];
       if (!ep || !ep.videoFile || ep.isExisting) {
-        resolve(true);
+        // Бұрын жүктелген бөлім — жаңа жүктеу қажет емес, бар videoUrl-ды қайтарамыз.
+        resolve(ep?.videoUrl || null);
         return;
       }
       setEpisodes((prev) => {
@@ -529,7 +530,7 @@ function DramaFormDialog({
               };
               return next;
             });
-            resolve(true);
+            resolve(data.url as string);
           } else {
             setEpisodes((prev) => {
               const next = [...prev];
@@ -541,7 +542,7 @@ function DramaFormDialog({
               description: data.error || 'Қате',
               variant: 'destructive',
             });
-            resolve(false);
+            resolve(null);
           }
         } catch {
           setEpisodes((prev) => {
@@ -549,7 +550,7 @@ function DramaFormDialog({
             next[idx] = { ...next[idx], uploading: false };
             return next;
           });
-          resolve(false);
+          resolve(null);
         }
       };
       xhr.onerror = () => {
@@ -559,7 +560,7 @@ function DramaFormDialog({
           return next;
         });
         toast({ title: 'Жүктеу қатесі', variant: 'destructive' });
-        resolve(false);
+        resolve(null);
       };
       const fd = new FormData();
       fd.append('kind', 'video');
@@ -646,17 +647,15 @@ function DramaFormDialog({
           });
           continue;
         }
-        const ok = await uploadEpisodeVideo(i);
-        if (!ok) {
+        const uploadedUrl = await uploadEpisodeVideo(i);
+        if (!uploadedUrl) {
           setSubmitting(false);
           return;
         }
-        const updated = episodes[i];
-        // episodes[i] is updated by the upload handler.
         uploadedEpisodes.push({
-          episodeNumber: updated.episodeNumber,
-          title: updated.title,
-          videoUrl: updated.videoUrl,
+          episodeNumber: ep.episodeNumber,
+          title: ep.title,
+          videoUrl: uploadedUrl,
         });
       }
 
