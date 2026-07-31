@@ -54,28 +54,36 @@ function sanitizeExt(name: string, fallback: string): string {
   return /^\.[a-z0-9]{1,5}$/.test(ext) ? ext : fallback;
 }
 
-function validateFile(file: File, subdir: UploadSubdir): void {
-  if (!file || file.size === 0) {
+function validateMeta(
+  subdir: UploadSubdir,
+  size: number,
+  mimeType: string,
+): void {
+  if (!size) {
     throw new Error("Файл жіберілмеді");
   }
-  if (subdir === "posters" && file.size > MAX_POSTER_SIZE) {
+  if (subdir === "posters" && size > MAX_POSTER_SIZE) {
     throw new Error(`Постер ${MAX_POSTER_SIZE / 1024 / 1024}MB-тан үлкен болмауы керек`);
   }
-  if (subdir === "avatars" && file.size > MAX_AVATAR_SIZE) {
+  if (subdir === "avatars" && size > MAX_AVATAR_SIZE) {
     throw new Error(`Аватар ${MAX_AVATAR_SIZE / 1024 / 1024}MB-тан үлкен болмауы керек`);
   }
-  if (subdir === "videos" && file.size > MAX_VIDEO_SIZE) {
+  if (subdir === "videos" && size > MAX_VIDEO_SIZE) {
     throw new Error(`Видео ${MAX_VIDEO_SIZE / 1024 / 1024 / 1024}GB-тан үлкен болмауы керек`);
   }
-  if (subdir === "posters" && !ALLOWED_IMAGE.has(file.type)) {
-    throw new Error(`Қолдау көрсетілмейтін формат: ${file.type}`);
+  if (subdir === "posters" && !ALLOWED_IMAGE.has(mimeType)) {
+    throw new Error(`Қолдау көрсетілмейтін формат: ${mimeType}`);
   }
-  if (subdir === "avatars" && !ALLOWED_IMAGE.has(file.type)) {
-    throw new Error(`Қолдау көрсетілмейтін формат: ${file.type}`);
+  if (subdir === "avatars" && !ALLOWED_IMAGE.has(mimeType)) {
+    throw new Error(`Қолдау көрсетілмейтін формат: ${mimeType}`);
   }
-  if (subdir === "videos" && !ALLOWED_VIDEO.has(file.type)) {
-    throw new Error(`Қолдау көрсетілмейтін формат: ${file.type}`);
+  if (subdir === "videos" && !ALLOWED_VIDEO.has(mimeType)) {
+    throw new Error(`Қолдау көрсетілмейтін формат: ${mimeType}`);
   }
+}
+
+function validateFile(file: File, subdir: UploadSubdir): void {
+  validateMeta(subdir, file.size, file.type);
 }
 
 export interface SavedFile {
@@ -124,6 +132,57 @@ export async function uploadFile(file: File, subdir: UploadSubdir): Promise<Save
     url: data.publicUrl,
     size: file.size,
     mimeType: file.type,
+  };
+}
+
+export interface UploadTicket {
+  path: string;
+  token: string;
+  publicUrl: string;
+  /** Клиент осы URL-ға PUT сұрауын тікелей жібереді (Vercel-ді айналып өтеді). */
+  signedUrl: string;
+}
+
+/**
+ * Үлкен файлдар (видео) үшін — клиент браузерден ТІКЕЛЕЙ Supabase
+ * Storage-қа жүктей алатындай, уақытша қолтаңбаланған (signed) upload
+ * URL жасайды. Vercel serverless функциясының 4.5MB body лимитін
+ * толық айналып өтеді, себебі байт ағыны Next.js серверінен өтпейді.
+ *
+ * Клиент жағы `uploadToSignedUrl` арқылы дәл осы path/token-мен
+ * тікелей PUT сұрауын жібереді.
+ */
+export async function createUploadTicket(
+  originalName: string,
+  size: number,
+  mimeType: string,
+  subdir: UploadSubdir,
+): Promise<UploadTicket> {
+  if (!isSupabaseStorageConfigured()) {
+    throw new Error(
+      "Supabase Storage конфигурацияланбаған. SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY орнатыңыз."
+    );
+  }
+  validateMeta(subdir, size, mimeType);
+
+  const ext = sanitizeExt(originalName, subdir === "videos" ? ".mp4" : ".jpg");
+  const filename = `${Date.now()}-${randomBytes(6).toString("hex")}${ext}`;
+  const objectPath = `${subdir}/${filename}`;
+
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase.storage.from(BUCKET).createSignedUploadUrl(objectPath);
+  if (error || !data) {
+    throw new Error(`Signed URL жасау мүмкін болмады: ${error?.message ?? "белгісіз қате"}`);
+  }
+
+  const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(objectPath);
+  const supabaseUrl = process.env.SUPABASE_URL!.replace(/\/$/, "");
+
+  return {
+    path: objectPath,
+    token: data.token,
+    publicUrl: pub.publicUrl,
+    signedUrl: `${supabaseUrl}/storage/v1/object/upload/sign/${BUCKET}/${objectPath}?token=${data.token}`,
   };
 }
 

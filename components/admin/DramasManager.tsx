@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Dialog, ConfirmDialog } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
+import { uploadFileDirect } from "@/lib/client-upload";
 
 interface DramaEpisode {
   id: string;
@@ -107,13 +108,11 @@ export function DramasManager() {
   const handleVideoUpload = async (file: File) => {
     setUploadingVideo(true);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("subdir", "videos");
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Жүктеу қатесі");
-      setEpisodeVideoUrl(data.url);
+      // Видео Vercel функциясы арқылы емес, тікелей Supabase Storage-қа
+      // жүктеледі — 4.5MB body лимитінен асатын нақты MP4 файлдары
+      // осылай ғана сенімді жүктеледі.
+      const url = await uploadFileDirect(file, "videos");
+      setEpisodeVideoUrl(url);
       toast({ title: "Видео жүктелді", variant: "success" });
     } catch (err: any) {
       toast({ title: "Видеоны жүктеу мүмкін болмады", description: err?.message, variant: "destructive" });
@@ -177,13 +176,8 @@ export function DramasManager() {
   const handlePosterUpload = async (file: File) => {
     setUploading(true);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("subdir", "posters");
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Жүктеу қатесі");
-      setForm((f) => ({ ...f, posterUrl: data.url }));
+      const url = await uploadFileDirect(file, "posters");
+      setForm((f) => ({ ...f, posterUrl: url }));
       toast({ title: "Постер жүктелді", variant: "success" });
     } catch (err: any) {
       toast({ title: "Постерді жүктеу мүмкін болмады", description: err?.message, variant: "destructive" });

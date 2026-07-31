@@ -25,6 +25,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/toast';
 import { formatNumber, formatDateShort, cn } from '@/lib/utils';
+import { uploadFileDirect } from '@/lib/client-upload';
 import type { DramaSummary, EpisodeSummary } from '@/types';
 
 interface DramaWithEpisodes extends DramaSummary {
@@ -473,16 +474,7 @@ function DramaFormDialog({
     if (!posterFile) return posterUrl;
     setPosterUploading(true);
     try {
-      const fd = new FormData();
-      fd.append('kind', 'poster');
-      fd.append('file', posterFile);
-      const res = await fetch('/api/upload', { method: 'POST', body: fd });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || 'Постерді жүктеу мүмкін болмады');
-      }
-      const data = await res.json();
-      return data.url as string;
+      return await uploadFileDirect(posterFile, 'posters');
     } catch (err: any) {
       toast({ title: 'Қате', description: err.message, variant: 'destructive' });
       return null;
@@ -491,82 +483,54 @@ function DramaFormDialog({
     }
   };
 
-  const uploadEpisodeVideo = (idx: number) =>
-    new Promise<string | null>((resolve) => {
-      const ep = episodes[idx];
-      if (!ep || !ep.videoFile || ep.isExisting) {
-        // Бұрын жүктелген бөлім — жаңа жүктеу қажет емес, бар videoUrl-ды қайтарамыз.
-        resolve(ep?.videoUrl || null);
-        return;
-      }
-      setEpisodes((prev) => {
-        const next = [...prev];
-        next[idx] = { ...next[idx], uploading: true, progress: 0 };
-        return next;
-      });
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', '/api/upload');
-      xhr.upload.onprogress = (e) => {
-        if (!e.lengthComputable) return;
-        const pct = (e.loaded / e.total) * 100;
+  const uploadEpisodeVideo = async (idx: number): Promise<string | null> => {
+    const ep = episodes[idx];
+    if (!ep || !ep.videoFile || ep.isExisting) {
+      // Бұрын жүктелген бөлім — жаңа жүктеу қажет емес, бар videoUrl-ды қайтарамыз.
+      return ep?.videoUrl || null;
+    }
+    setEpisodes((prev) => {
+      const next = [...prev];
+      next[idx] = { ...next[idx], uploading: true, progress: 0 };
+      return next;
+    });
+    try {
+      // Видео Vercel функциясы арқылы емес, тікелей Supabase Storage-қа
+      // жүктеледі — 4.5MB body лимитінен асатын нақты MP4 файлдары
+      // осылай ғана сенімді жүктеледі.
+      const url = await uploadFileDirect(ep.videoFile, 'videos', (pct) => {
         setEpisodes((prev) => {
           const next = [...prev];
           next[idx] = { ...next[idx], progress: pct };
           return next;
         });
-      };
-      xhr.onload = () => {
-        try {
-          const data = JSON.parse(xhr.responseText || '{}');
-          if (xhr.status >= 200 && xhr.status < 300 && data.url) {
-            setEpisodes((prev) => {
-              const next = [...prev];
-              next[idx] = {
-                ...next[idx],
-                videoUrl: data.url,
-                uploading: false,
-                uploaded: true,
-                progress: 100,
-              };
-              return next;
-            });
-            resolve(data.url as string);
-          } else {
-            setEpisodes((prev) => {
-              const next = [...prev];
-              next[idx] = { ...next[idx], uploading: false };
-              return next;
-            });
-            toast({
-              title: 'Видео жүктелмеді',
-              description: data.error || 'Қате',
-              variant: 'destructive',
-            });
-            resolve(null);
-          }
-        } catch {
-          setEpisodes((prev) => {
-            const next = [...prev];
-            next[idx] = { ...next[idx], uploading: false };
-            return next;
-          });
-          resolve(null);
-        }
-      };
-      xhr.onerror = () => {
-        setEpisodes((prev) => {
-          const next = [...prev];
-          next[idx] = { ...next[idx], uploading: false };
-          return next;
-        });
-        toast({ title: 'Жүктеу қатесі', variant: 'destructive' });
-        resolve(null);
-      };
-      const fd = new FormData();
-      fd.append('kind', 'video');
-      fd.append('file', ep.videoFile);
-      xhr.send(fd);
-    });
+      });
+      setEpisodes((prev) => {
+        const next = [...prev];
+        next[idx] = {
+          ...next[idx],
+          videoUrl: url,
+          uploading: false,
+          uploaded: true,
+          progress: 100,
+        };
+        return next;
+      });
+      return url;
+    } catch (err: any) {
+      setEpisodes((prev) => {
+        const next = [...prev];
+        next[idx] = { ...next[idx], uploading: false };
+        return next;
+      });
+      toast({
+        title: 'Видео жүктелмеді',
+        description: err?.message || 'Қате',
+        variant: 'destructive',
+      });
+      return null;
+    }
+  };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
