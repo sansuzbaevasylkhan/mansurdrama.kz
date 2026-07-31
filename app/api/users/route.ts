@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { requireAdmin } from '@/lib/api-guards';
 import { getAllUsers, createUser } from '@/lib/db';
 import { hashPassword } from '@/lib/auth';
+import { sendWelcomeEmail } from '@/lib/mailer';
 
 export async function GET() {
   const guard = await requireAdmin();
@@ -47,6 +48,13 @@ export async function POST(request: NextRequest) {
       avatar: parsed.data.avatar ?? null,
       password,
     });
+
+    sendWelcomeEmail({
+      to: user.email,
+      name: user.name,
+      password: parsed.data.password,
+    }).catch((err) => console.error('sendWelcomeEmail failed:', err));
+
     return NextResponse.json(user, { status: 201 });
   } catch (err: any) {
     if (err?.code === 'P2002') {
