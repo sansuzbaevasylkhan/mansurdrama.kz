@@ -46,7 +46,13 @@ export async function POST(request: NextRequest) {
       isPublished,
     });
     return NextResponse.json(drama, { status: 201 });
-  } catch (err) {
+  } catch (err: any) {
+    if (err?.code === 'P2002') {
+      return NextResponse.json(
+        { error: 'Бұл slug бойынша дорама бар, басқа атау/сілтеме таңдаңыз' },
+        { status: 409 },
+      );
+    }
     console.error('POST /api/dramas error:', err);
     return NextResponse.json(
       { error: 'Дораманы сақтау мүмкін болмады' },

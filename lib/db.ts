@@ -1,6 +1,6 @@
 // Database query helpers — all persistence flows through here.
 import { prisma } from './prisma';
-import { slugify, ensureUniqueSlug } from './slug';
+import { ensureUniqueSlug } from './slug';
 import type { DramaSummary, EpisodeSummary, UserSummary, UserRole } from '@/types';
 
 // ---------- Dramas ----------
@@ -96,7 +96,9 @@ export interface CreateDramaInput {
 }
 
 export async function createDrama(data: CreateDramaInput) {
-  const finalSlug = data.slug ? slugify(data.slug) : await generateUniqueSlug(data.title);
+  const finalSlug = data.slug
+    ? await generateUniqueSlug(data.slug)
+    : await generateUniqueSlug(data.title);
   return prisma.drama.create({
     data: {
       title: data.title.trim(),
