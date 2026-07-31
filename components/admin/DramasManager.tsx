@@ -2,11 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Pencil, Trash2, Upload, Eye, EyeOff, Film } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, Eye, EyeOff, Film, Video, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Dialog, ConfirmDialog } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
+
+interface DramaEpisode {
+  id: string;
+  episodeNumber: number;
+  title: string;
+  videoUrl: string;
+}
 
 interface Drama {
   id: string;
@@ -16,7 +23,7 @@ interface Drama {
   posterUrl: string;
   totalEpisodes: number;
   isPublished: boolean;
-  episodes: { id: string; episodeNumber: number }[];
+  episodes: DramaEpisode[];
 }
 
 interface FormState {
@@ -49,6 +56,12 @@ export function DramasManager() {
   const [uploading, setUploading] = useState(false);
   const [toDelete, setToDelete] = useState<Drama | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  const [episodeTitle, setEpisodeTitle] = useState("");
+  const [episodeNumber, setEpisodeNumber] = useState("1");
+  const [episodeVideoUrl, setEpisodeVideoUrl] = useState("");
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [addingEpisode, setAddingEpisode] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -83,7 +96,82 @@ export function DramasManager() {
       totalEpisodes: String(drama.totalEpisodes),
       isPublished: drama.isPublished,
     });
+    setEpisodeNumber(String(drama.episodes.length + 1));
+    setEpisodeTitle("");
+    setEpisodeVideoUrl("");
     setDialogOpen(true);
+  };
+
+  const currentDrama = form.id ? dramas.find((d) => d.id === form.id) : undefined;
+
+  const handleVideoUpload = async (file: File) => {
+    setUploadingVideo(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("subdir", "videos");
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Жүктеу қатесі");
+      setEpisodeVideoUrl(data.url);
+      toast({ title: "Видео жүктелді", variant: "success" });
+    } catch (err: any) {
+      toast({ title: "Видеоны жүктеу мүмкін болмады", description: err?.message, variant: "destructive" });
+    } finally {
+      setUploadingVideo(false);
+    }
+  };
+
+  const handleAddEpisode = async () => {
+    if (!form.id) return;
+    const num = parseInt(episodeNumber, 10);
+    if (!Number.isInteger(num) || num < 1) {
+      toast({ title: "Бөлім нөмірі дұрыс болуы керек", variant: "warning" });
+      return;
+    }
+    if (!episodeVideoUrl.trim()) {
+      toast({ title: "Видео файлды жүктеңіз", variant: "warning" });
+      return;
+    }
+    setAddingEpisode(true);
+    try {
+      const res = await fetch(`/api/dramas/${form.id}/episodes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          episodes: [
+            {
+              episodeNumber: num,
+              title: episodeTitle.trim() || undefined,
+              videoUrl: episodeVideoUrl.trim(),
+            },
+          ],
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Бөлімді сақтау мүмкін болмады");
+
+      toast({ title: "Бөлім қосылды", variant: "success" });
+      setEpisodeTitle("");
+      setEpisodeVideoUrl("");
+      setEpisodeNumber(String(num + 1));
+      await load();
+    } catch (err: any) {
+      toast({ title: "Қате шықты", description: err?.message, variant: "destructive" });
+    } finally {
+      setAddingEpisode(false);
+    }
+  };
+
+  const handleDeleteEpisode = async (episodeId: string) => {
+    try {
+      const res = await fetch(`/api/episodes/${episodeId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      toast({ title: "Бөлім жойылды", variant: "success" });
+      await load();
+    } catch {
+      toast({ title: "Бөлімді жою мүмкін болмады", variant: "destructive" });
+    }
   };
 
   const handlePosterUpload = async (file: File) => {
@@ -141,8 +229,16 @@ export function DramasManager() {
       if (!res.ok) throw new Error(data?.error || "Сақтау мүмкін болмады");
 
       toast({ title: form.id ? "Дорама жаңартылды" : "Дорама қосылды", variant: "success" });
-      setDialogOpen(false);
       await load();
+
+      if (!form.id) {
+        // Жаңа дорама сақталды — диалогты жаппай, бөлім қосу үшін
+        // редакциялау режиміне ауыстырамыз.
+        setForm((f) => ({ ...f, id: data.id, slug: data.slug }));
+        setEpisodeNumber("1");
+      } else {
+        setDialogOpen(false);
+      }
     } catch (err: any) {
       toast({ title: "Қате шықты", description: err?.message, variant: "destructive" });
     } finally {
@@ -325,6 +421,106 @@ export function DramasManager() {
             />
             Жарияланған (сайтта көрінеді)
           </label>
+
+          {form.id ? (
+            <div className="border-t border-white/10 pt-4">
+              <h3 className="mb-3 text-sm font-semibold text-white">Бөлімдер (видео)</h3>
+
+              {currentDrama && currentDrama.episodes.length > 0 ? (
+                <div className="mb-4 space-y-2">
+                  {[...currentDrama.episodes]
+                    .sort((a, b) => a.episodeNumber - b.episodeNumber)
+                    .map((ep) => (
+                      <div
+                        key={ep.id}
+                        className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2"
+                      >
+                        <Video className="h-4 w-4 shrink-0 text-primary-400" />
+                        <span className="shrink-0 text-xs font-semibold text-white/70">
+                          #{ep.episodeNumber}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-sm text-white">
+                          {ep.title}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteEpisode(ep.id)}
+                          className="shrink-0 rounded-lg p-1 text-white/40 hover:bg-red-500/10 hover:text-red-400"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <p className="mb-4 text-xs text-white/40">Әзірге бөлім қосылмаған</p>
+              )}
+
+              <div className="space-y-3 rounded-xl border border-white/10 bg-white/[0.02] p-3">
+                <div className="flex gap-3">
+                  <div className="w-24">
+                    <label className="mb-1.5 block text-xs text-white/60">Нөмір</label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={episodeNumber}
+                      onChange={(e) => setEpisodeNumber(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="mb-1.5 block text-xs text-white/60">Атауы (міндетті емес)</label>
+                    <Input
+                      value={episodeTitle}
+                      onChange={(e) => setEpisodeTitle(e.target.value)}
+                      placeholder={`Бөлім ${episodeNumber || ""}`}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs text-white/60">Видео (MP4) *</label>
+                  <div className="flex items-center gap-3">
+                    <Input
+                      value={episodeVideoUrl}
+                      onChange={(e) => setEpisodeVideoUrl(e.target.value)}
+                      placeholder="https://... немесе файл жүктеңіз"
+                    />
+                    <label className="shrink-0">
+                      <input
+                        type="file"
+                        accept="video/mp4,video/webm,video/ogg,video/quicktime,video/x-matroska,video/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleVideoUpload(file);
+                        }}
+                      />
+                      <span className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl border border-white/10 bg-white/5 hover:bg-white/10">
+                        {uploadingVideo ? (
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                        ) : (
+                          <Upload className="h-4 w-4 text-white" />
+                        )}
+                      </span>
+                    </label>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={handleAddEpisode}
+                  loading={addingEpisode}
+                  disabled={uploadingVideo}
+                  className="w-full"
+                >
+                  <Plus className="h-4 w-4" /> Бөлім қосу
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-white/40">
+              Дораманы алдымен сақтаңыз, содан кейін бөлім (видео) қоса аласыз.
+            </p>
+          )}
 
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="ghost" onClick={() => setDialogOpen(false)} disabled={saving}>
