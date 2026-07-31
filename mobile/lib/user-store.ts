@@ -32,6 +32,20 @@ export const useUser = create<UserState>((set) => ({
       userStore.getUser(),
     ]);
     set({ token, user, hydrated: true });
+
+    // Сессияны серверден тексеру — admin қолданушыны өшірсе,
+    // токен жарамды болса да, автоматты шығарамыз.
+    if (token) {
+      try {
+        const res = await apiFetch<{ user: PublicUser | null }>("/api/auth/me");
+        if (!res.user) {
+          await userStore.clear();
+          set({ token: null, user: null });
+        }
+      } catch {
+        // Желі қатесі — офлайн режимде сессияны сақтап қаламыз
+      }
+    }
   },
   async login(email, name) {
     set({ loading: true });
