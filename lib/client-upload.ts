@@ -31,9 +31,14 @@ export async function uploadFileDirect(
   }
 
   // 2) Файлды тікелей Supabase Storage-қа жіберу (XHR — progress үшін).
+  // Raw binary body (multipart/FormData ЕМЕС) — Supabase-тің signed-upload
+  // эндпоинті multipart денені кейде тым баяу/іркіліп өңдейді, ал raw
+  // binary сенімді әрі тезірек жұмыс істейді.
   await new Promise<void>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('PUT', ticket.signedUrl);
+    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+    xhr.setRequestHeader('cache-control', 'max-age=31536000');
     xhr.upload.onprogress = (e) => {
       if (!e.lengthComputable || !onProgress) return;
       onProgress((e.loaded / e.total) * 100);
@@ -46,11 +51,7 @@ export async function uploadFileDirect(
       }
     };
     xhr.onerror = () => reject(new Error('Желі қатесі — жүктеу сәтсіз аяқталды'));
-
-    const fd = new FormData();
-    fd.append('cacheControl', '31536000');
-    fd.append('', file);
-    xhr.send(fd);
+    xhr.send(file);
   });
 
   return ticket.publicUrl as string;
