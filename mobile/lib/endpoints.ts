@@ -4,6 +4,8 @@ import type {
   Drama,
   Episode,
   Payment,
+  ContinueWatchingItem,
+  WatchProgress,
 } from "./types";
 
 // ─── Публичный API ──────────────────────────────────────────────
@@ -60,4 +62,22 @@ export const userApi = {
     await userStore.clear();
   },
   me: () => apiFetch<{ user: PublicUser | null }>("/api/auth/me"),
+};
+
+// ─── Қарау тарихы ("жалғастырып көру") — тек логин болғанда ─────
+export const watchHistoryApi = {
+  /** Ойнату барысында мезгіл-мезгіл шақырылады (мысалы, әр 10 секунд сайын). */
+  save: (params: {
+    episodeId: string;
+    dramaId: string;
+    positionSeconds: number;
+    durationSeconds: number;
+  }) =>
+    apiFetch<WatchProgress>("/api/watch-history", { method: "POST", body: params }),
+  /** Бөлімді ашқанда — қайдан жалғастыру керегін алу. */
+  progress: (episodeId: string) =>
+    apiFetch<{ progress: WatchProgress | null }>(`/api/watch-history/${episodeId}`),
+  /** Профильдегі "Көрген дорамаларың" тізімі. */
+  continueWatching: () =>
+    apiFetch<{ items: ContinueWatchingItem[] }>("/api/watch-history"),
 };

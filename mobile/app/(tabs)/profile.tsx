@@ -1,14 +1,31 @@
+import { useEffect, useState } from "react";
 import { View, Text, Pressable, Alert, ScrollView } from "react-native";
+import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { LogOut, Mail, User as UserIcon, Tv, Clock, Heart } from "lucide-react-native";
+import { LogOut, Mail, User as UserIcon, Tv, Clock, Heart, Play } from "lucide-react-native";
 import { useUser } from "@/lib/user-store";
+import { watchHistoryApi } from "@/lib/endpoints";
+import type { ContinueWatchingItem } from "@/lib/types";
+import { formatDuration } from "@/lib/utils";
 
 export default function ProfileScreen() {
   const router = useRouter();
   const user = useUser((s) => s.user);
   const logout = useUser((s) => s.logout);
   const hydrated = useUser((s) => s.hydrated);
+  const [continueWatching, setContinueWatching] = useState<ContinueWatchingItem[]>([]);
+
+  useEffect(() => {
+    if (!user) {
+      setContinueWatching([]);
+      return;
+    }
+    watchHistoryApi
+      .continueWatching()
+      .then((res) => setContinueWatching(res.items))
+      .catch(() => {});
+  }, [user]);
 
   if (!hydrated) return null;
 
@@ -84,8 +101,78 @@ export default function ProfileScreen() {
         <View className="mt-4 flex-row gap-3">
           <StatBox icon={<Tv size={14} color="#ec4899" />} label="Ашылған" value="—" />
           <StatBox icon={<Heart size={14} color="#f472b6" />} label="Таңдаулы" value="—" />
-          <StatBox icon={<Clock size={14} color="#a78bfa" />} label="Қараған" value="—" />
+          <StatBox
+            icon={<Clock size={14} color="#a78bfa" />}
+            label="Қараған"
+            value={continueWatching.length > 0 ? String(continueWatching.length) : "—"}
+          />
         </View>
+
+        {/* Жалғастырып көру */}
+        {continueWatching.length > 0 ? (
+          <View className="mt-5">
+            <Text className="text-sm font-semibold text-white mb-2.5">Көрген дорамаларың</Text>
+            <View className="gap-2.5">
+              {continueWatching.map((item) => {
+                const percent =
+                  item.durationSeconds > 0
+                    ? Math.min(100, (item.positionSeconds / item.durationSeconds) * 100)
+                    : 0;
+                return (
+                  <Pressable
+                    key={item.id}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/watch/[episodeId]",
+                        params: {
+                          episodeId: item.episode.id,
+                          dramaId: item.dramaId,
+                          videoUrl: item.episode.playbackId
+                            ? `https://stream.mux.com/${item.episode.playbackId}.m3u8`
+                            : item.episode.videoUrl,
+                          posterUrl: item.drama.posterUrl,
+                          title: item.drama.title,
+                          subtitle: item.episode.title,
+                        },
+                      })
+                    }
+                    className="flex-row items-center gap-3 rounded-2xl border border-white/10 p-2.5"
+                    style={{ backgroundColor: "rgba(255,255,255,0.02)" }}
+                  >
+                    <View className="h-16 w-12 rounded-xl overflow-hidden bg-white/5">
+                      <Image
+                        source={{ uri: item.drama.posterUrl }}
+                        style={{ width: "100%", height: "100%" }}
+                        contentFit="cover"
+                      />
+                    </View>
+                    <View className="flex-1 min-w-0">
+                      <Text className="text-sm font-semibold text-white" numberOfLines={1}>
+                        {item.drama.title}
+                      </Text>
+                      <Text className="mt-0.5 text-xs text-white/50" numberOfLines={1}>
+                        {item.episode.episodeNumber}-бөлім · {formatDuration(item.positionSeconds)} /{" "}
+                        {formatDuration(item.durationSeconds)}
+                      </Text>
+                      <View className="mt-1.5 h-1 w-full rounded-full bg-white/10 overflow-hidden">
+                        <View
+                          className="h-full rounded-full"
+                          style={{ width: `${percent}%`, backgroundColor: "#ec4899" }}
+                        />
+                      </View>
+                    </View>
+                    <View
+                      className="h-8 w-8 rounded-full items-center justify-center"
+                      style={{ backgroundColor: "rgba(236,72,153,0.20)" }}
+                    >
+                      <Play size={14} color="#ec4899" fill="#ec4899" />
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        ) : null}
 
         {/* Info */}
         <View className="mt-5 rounded-2xl border border-white/10 p-4" style={{ backgroundColor: "rgba(255,255,255,0.02)" }}>

@@ -13,6 +13,8 @@ import {
   Share2,
 } from "lucide-react-native";
 import { formatDuration } from "@/lib/utils";
+import { watchHistoryApi } from "@/lib/endpoints";
+import { useUser } from "@/lib/user-store";
 
 /**
  * Толық экранды бөлім ойнатқышы (TikTok/Reels стилінде).
@@ -22,23 +24,66 @@ import { formatDuration } from "@/lib/utils";
 export default function WatchScreen() {
   const params = useLocalSearchParams<{
     episodeId: string;
+    dramaId?: string;
     videoUrl: string;
     posterUrl?: string;
     title?: string;
     subtitle?: string;
   }>();
   const router = useRouter();
+  const { user } = useUser();
 
   const ref = useRef<Video>(null);
   const [status, setStatus] = useState<any>({});
+  const statusRef = useRef<any>({});
   const [muted, setMuted] = useState(false);
   const [showControls, setShowControls] = useState(true);
+  const [resumeMillis, setResumeMillis] = useState<number | null>(null);
+  // Video компонентін resume позициясы анықталғанша көрсетпей тұрамыз —
+  // әйтпесе 0-ден ойнап кетіп, кейін позиция ауыстыру секіріп кетеді.
+  const [resumeReady, setResumeReady] = useState(!user);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSavedAt = useRef(0);
+
+  // Логин болған қолданушы үшін — бөлімді бұрын қайда тоқтатқанын алу.
+  useEffect(() => {
+    if (!user || !params.episodeId) {
+      setResumeReady(true);
+      return;
+    }
+    watchHistoryApi
+      .progress(params.episodeId)
+      .then((res) => {
+        if (res.progress && !res.progress.completed && res.progress.positionSeconds > 5) {
+          setResumeMillis(res.progress.positionSeconds * 1000);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setResumeReady(true));
+  }, [user, params.episodeId]);
+
+  const saveProgress = (positionSeconds: number, durationSeconds: number) => {
+    if (!user || !params.episodeId || !params.dramaId || durationSeconds <= 0) return;
+    watchHistoryApi
+      .save({
+        episodeId: params.episodeId,
+        dramaId: params.dramaId,
+        positionSeconds: Math.floor(positionSeconds),
+        durationSeconds: Math.floor(durationSeconds),
+      })
+      .catch(() => {});
+  };
 
   useEffect(() => {
     return () => {
+      // Экраннан шыққанда соңғы позицияны сақтап қалу (ref — stale closure болмас үшін).
+      const s = statusRef.current;
+      if (s.positionMillis && s.durationMillis) {
+        saveProgress(s.positionMillis / 1000, s.durationMillis / 1000);
+      }
       ref.current?.unloadAsync().catch(() => {});
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -70,7 +115,7 @@ export default function WatchScreen() {
   };
 
   const isPlaying = !!status.isPlaying;
-  const isLoading = status.isBuffering || !status.isLoaded;
+  const isLoading = !resumeReady || status.isBuffering || !status.isLoaded;
   const progress =
     status.durationMillis && status.positionMillis
       ? (status.positionMillis / status.durationMillis) * 100
@@ -81,6 +126,7 @@ export default function WatchScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <Pressable className="absolute inset-0" onPress={toggleControls}>
+        {resumeReady ? (
         <Video
           ref={ref}
           source={{ uri: params.videoUrl }}
@@ -89,10 +135,23 @@ export default function WatchScreen() {
           resizeMode={ResizeMode.CONTAIN}
           shouldPlay
           isMuted={muted}
+          positionMillis={resumeMillis ?? undefined}
           useNativeControls={false}
-          onPlaybackStatusUpdate={(s) => setStatus(s)}
+          onPlaybackStatusUpdate={(s: any) => {
+            setStatus(s);
+            statusRef.current = s;
+            // Әр ~10 секунд сайын прогресті сақтау (артық сұраныс жібермеу үшін).
+            if (s.isLoaded && s.positionMillis && s.durationMillis) {
+              const now = Date.now();
+              if (now - lastSavedAt.current > 10000) {
+                lastSavedAt.current = now;
+                saveProgress(s.positionMillis / 1000, s.durationMillis / 1000);
+              }
+            }
+          }}
           style={{ width: "100%", height: "100%", backgroundColor: "#000" }}
         />
+        ) : null}
       </Pressable>
 
       {isLoading ? (

@@ -16,9 +16,32 @@ export interface Episode {
   episodeNumber: number;
   title: string;
   videoUrl: string;
+  playbackId?: string | null;
   duration: number;
   thumbnail?: string | null;
   views: number;
+}
+
+export interface WatchProgress {
+  id: string;
+  userId: string;
+  dramaId: string;
+  episodeId: string;
+  positionSeconds: number;
+  durationSeconds: number;
+  completed: boolean;
+  updatedAt: string;
+}
+
+export interface ContinueWatchingItem extends WatchProgress {
+  drama: { id: string; title: string; slug: string; posterUrl: string };
+  episode: {
+    id: string;
+    episodeNumber: number;
+    title: string;
+    videoUrl: string;
+    playbackId: string | null;
+  };
 }
 
 export interface Drama {

@@ -2,13 +2,14 @@ import { View, Text, Image } from "react-native";
 import { Tabs } from "expo-router";
 import { Tv, Search, User } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 function HeaderTitle() {
   return (
     <View className="flex-row items-center gap-1">
       <Image
         source={require("@/assets/md.png")}
-        style={{ width: 99, height: 77, borderRadius: 10 }}
+        style={{ width: 118, height: 92, borderRadius: 10 }}
         resizeMode="contain"
       />
       <Text className="text-xl font-extrabold text-white">Mansur Drama</Text>
@@ -17,6 +18,8 @@ function HeaderTitle() {
 }
 
 export default function TabsLayout() {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tabs
       screenOptions={{
@@ -39,9 +42,9 @@ export default function TabsLayout() {
           backgroundColor: "transparent",
           borderTopWidth: 0,
           elevation: 0,
-          height: 64,
+          height: 64 + insets.bottom,
           paddingTop: 8,
-          paddingBottom: 10,
+          paddingBottom: 10 + insets.bottom,
         },
         tabBarBackground: () => (
           <LinearGradient

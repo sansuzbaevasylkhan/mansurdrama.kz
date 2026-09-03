@@ -16,6 +16,7 @@ export interface EpisodeSummary {
   episodeNumber: number;
   title: string;
   videoUrl: string;
+  playbackId: string | null;
   duration: number;
   thumbnail: string | null;
   views: number;

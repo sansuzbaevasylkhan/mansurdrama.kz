@@ -69,6 +69,7 @@ const episodeSelect = {
   episodeNumber: true,
   title: true,
   videoUrl: true,
+  playbackId: true,
   duration: true,
   thumbnail: true,
   views: true,
@@ -144,6 +145,8 @@ export interface CreateEpisodeInput {
   episodeNumber: number;
   title: string;
   videoUrl: string;
+  playbackId?: string | null;
+  muxAssetId?: string | null;
   duration?: number;
   thumbnail?: string | null;
 }
@@ -159,7 +162,14 @@ export async function createEpisodes(episodes: CreateEpisodeInput[]) {
 
 export async function updateEpisode(
   id: string,
-  data: Partial<{ title: string; videoUrl: string; duration: number; thumbnail: string | null }>,
+  data: Partial<{
+    title: string;
+    videoUrl: string;
+    playbackId: string | null;
+    muxAssetId: string | null;
+    duration: number;
+    thumbnail: string | null;
+  }>,
 ) {
   return prisma.episode.update({ where: { id }, data });
 }
@@ -170,6 +180,57 @@ export async function deleteEpisode(id: string) {
 
 export async function deleteEpisodesForDrama(dramaId: string) {
   return prisma.episode.deleteMany({ where: { dramaId } });
+}
+
+// ---------- Watch history (тек логин болған пайдаланушылар үшін) ----------
+
+export async function upsertWatchHistory(input: {
+  userId: string;
+  dramaId: string;
+  episodeId: string;
+  positionSeconds: number;
+  durationSeconds: number;
+}) {
+  const { userId, episodeId, dramaId, positionSeconds, durationSeconds } = input;
+  const completed = durationSeconds > 0 && positionSeconds >= durationSeconds - 5;
+  return prisma.watchHistory.upsert({
+    where: { userId_episodeId: { userId, episodeId } },
+    create: { userId, dramaId, episodeId, positionSeconds, durationSeconds, completed },
+    update: { positionSeconds, durationSeconds, completed },
+  });
+}
+
+export async function getWatchProgress(userId: string, episodeId: string) {
+  return prisma.watchHistory.findUnique({
+    where: { userId_episodeId: { userId, episodeId } },
+  });
+}
+
+/**
+ * "Жалғастырып көру" тізімі — әр драма бойынша ең соңғы қаралған бөлім,
+ * жаңасынан ескісіне қарай сұрыпталған.
+ */
+export async function getContinueWatching(userId: string, limit = 20) {
+  const rows = await prisma.watchHistory.findMany({
+    where: { userId },
+    orderBy: { updatedAt: 'desc' },
+    include: {
+      drama: { select: { id: true, title: true, slug: true, posterUrl: true } },
+      episode: {
+        select: { id: true, episodeNumber: true, title: true, videoUrl: true, playbackId: true },
+      },
+    },
+  });
+  // Драма бойынша тек ең соңғы жазбаны қалдыру.
+  const seen = new Set<string>();
+  const unique = [];
+  for (const row of rows) {
+    if (seen.has(row.dramaId)) continue;
+    seen.add(row.dramaId);
+    unique.push(row);
+    if (unique.length >= limit) break;
+  }
+  return unique;
 }
 
 // ---------- Users ----------

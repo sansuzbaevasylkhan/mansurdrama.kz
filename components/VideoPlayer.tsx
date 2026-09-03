@@ -7,6 +7,8 @@ import { cn } from '@/lib/utils';
 
 interface VideoPlayerProps {
   videoUrl: string;
+  /** Mux playback ID — берілсе HLS стрим (`stream.mux.com/{id}.m3u8`) ойнатылады. */
+  playbackId?: string | null;
   posterUrl?: string;
   title?: string;
   autoPlay?: boolean;
@@ -15,6 +17,7 @@ interface VideoPlayerProps {
 
 export function VideoPlayer({
   videoUrl,
+  playbackId,
   posterUrl,
   title,
   autoPlay = false,
@@ -27,6 +30,39 @@ export function VideoPlayer({
   const [progress, setProgress] = React.useState(0);
   const [duration, setDuration] = React.useState(0);
   const [current, setCurrent] = React.useState(0);
+
+  const src = playbackId ? `https://stream.mux.com/${playbackId}.m3u8` : videoUrl;
+
+  React.useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+
+    // Mux емес (raw MP4) видео — жәй ғана src қою жеткілікті.
+    if (!playbackId) {
+      v.src = src;
+      return;
+    }
+
+    // Safari HLS-ті нативті қолдайды, басқа браузерлерге hls.js керек.
+    if (v.canPlayType('application/vnd.apple.mpegurl')) {
+      v.src = src;
+      return;
+    }
+
+    let hls: import('hls.js').default | null = null;
+    let cancelled = false;
+    import('hls.js').then(({ default: Hls }) => {
+      if (cancelled || !Hls.isSupported()) return;
+      hls = new Hls();
+      hls.loadSource(src);
+      hls.attachMedia(v);
+    });
+
+    return () => {
+      cancelled = true;
+      hls?.destroy();
+    };
+  }, [playbackId, src]);
 
   React.useEffect(() => {
     const v = videoRef.current;
@@ -104,7 +140,6 @@ export function VideoPlayer({
     >
       <video
         ref={videoRef}
-        src={videoUrl}
         poster={posterUrl}
         autoPlay={autoPlay}
         muted={muted}

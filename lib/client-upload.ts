@@ -56,3 +56,62 @@ export async function uploadFileDirect(
 
   return ticket.publicUrl as string;
 }
+
+export interface MuxUploadResult {
+  playbackId: string;
+  assetId: string;
+  uploadId: string;
+}
+
+/**
+ * Видео файлды Mux-қа тікелей жүктеу (@mux/upchunk) және Mux видеоны
+ * өңдеп бітіргенше (playbackId дайын болғанша) polling жасау.
+ *
+ * Қолдану:
+ *   const { playbackId } = await uploadVideoToMux(file, (pct) => setProgress(pct));
+ */
+export async function uploadVideoToMux(
+  file: File,
+  onProgress?: (pct: number) => void,
+): Promise<MuxUploadResult> {
+  const { createUpload } = await import('@mux/upchunk');
+
+  // 1) Серверден бір реттік Mux Direct Upload URL алу.
+  const ticketRes = await fetch('/api/upload/mux', { method: 'POST' });
+  const ticket = await ticketRes.json();
+  if (!ticketRes.ok) {
+    throw new Error(ticket?.error || 'Mux upload URL алу мүмкін болмады');
+  }
+  const uploadId: string = ticket.uploadId;
+
+  // 2) Файлды тікелей Mux-қа chunk-тап жүктеу.
+  await new Promise<void>((resolve, reject) => {
+    const upload = createUpload({
+      endpoint: ticket.url,
+      file,
+      chunkSize: 30720, // ~30MB chunk-тар
+    });
+    upload.on('error', (err: any) => reject(new Error(err?.detail || 'Mux жүктеу қатесі')));
+    upload.on('progress', (evt: any) => onProgress?.(evt.detail));
+    upload.on('success', () => resolve());
+  });
+
+  // 3) Mux видеоны өңдеп бітіргенше polling (playbackId дайын болғанша).
+  const start = Date.now();
+  const TIMEOUT_MS = 10 * 60 * 1000; // 10 минут
+  while (Date.now() - start < TIMEOUT_MS) {
+    const statusRes = await fetch(`/api/upload/mux/status?uploadId=${encodeURIComponent(uploadId)}`);
+    const status = await statusRes.json();
+    if (!statusRes.ok) throw new Error(status?.error || 'Mux статусын алу мүмкін болмады');
+
+    if (status.assetStatus === 'errored') {
+      throw new Error('Mux видеоны өңдей алмады (errored)');
+    }
+    if (status.playbackId) {
+      return { playbackId: status.playbackId, assetId: status.assetId, uploadId };
+    }
+    await new Promise((r) => setTimeout(r, 3000));
+  }
+
+  throw new Error('Mux видеоны өңдеу тым ұзаққа созылды (10 минуттан асты)');
+}

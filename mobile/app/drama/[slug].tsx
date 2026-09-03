@@ -158,6 +158,7 @@ export default function DramaPage() {
                         pathname: "/watch/[episodeId]",
                         params: {
                           episodeId: ep.id,
+                          dramaId: drama.id,
                           videoUrl: ep.videoUrl,
                           posterUrl: drama.posterUrl,
                           title: drama.title,

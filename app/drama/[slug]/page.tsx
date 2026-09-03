@@ -139,6 +139,7 @@ export default async function DramaPage({ params }: PageProps) {
                 </div>
                 <VideoPlayer
                   videoUrl={ep.videoUrl}
+                  playbackId={ep.playbackId}
                   posterUrl={drama.posterUrl}
                   title={`${drama.title} — ${ep.title}`}
                 />

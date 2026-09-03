@@ -25,7 +25,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/toast';
 import { formatNumber, formatDateShort, cn } from '@/lib/utils';
-import { uploadFileDirect } from '@/lib/client-upload';
+import { uploadFileDirect, uploadVideoToMux } from '@/lib/client-upload';
 import type { DramaSummary, EpisodeSummary } from '@/types';
 
 interface DramaWithEpisodes extends DramaSummary {
@@ -38,8 +38,10 @@ interface EpisodeDraft {
   title: string;
   videoFile: File | null;
   videoUrl: string;
+  playbackId: string | null;
   progress: number;
   uploading: boolean;
+  processing: boolean;
   uploaded: boolean;
   isExisting?: boolean;
   existingId?: string;
@@ -374,8 +376,10 @@ function DramaFormDialog({
           title: e.title,
           videoFile: null,
           videoUrl: e.videoUrl,
+          playbackId: e.playbackId ?? null,
           progress: 100,
           uploading: false,
+          processing: false,
           uploaded: true,
           isExisting: true,
           existingId: e.id,
@@ -398,8 +402,10 @@ function DramaFormDialog({
           title: 'Бөлім 1',
           videoFile: null,
           videoUrl: '',
+          playbackId: null,
           progress: 0,
           uploading: false,
+          processing: false,
           uploaded: false,
         },
       ]);
@@ -442,8 +448,10 @@ function DramaFormDialog({
             title: `Бөлім ${i + 1}`,
             videoFile: null,
             videoUrl: '',
+            playbackId: null,
             progress: 0,
             uploading: false,
+            processing: false,
             uploaded: false,
           });
         }
@@ -486,22 +494,21 @@ function DramaFormDialog({
   const uploadEpisodeVideo = async (idx: number): Promise<string | null> => {
     const ep = episodes[idx];
     if (!ep || !ep.videoFile || ep.isExisting) {
-      // Бұрын жүктелген бөлім — жаңа жүктеу қажет емес, бар videoUrl-ды қайтарамыз.
-      return ep?.videoUrl || null;
+      // Бұрын жүктелген бөлім — жаңа жүктеу қажет емес, бар playbackId-ды қайтарамыз.
+      return ep?.playbackId || null;
     }
     setEpisodes((prev) => {
       const next = [...prev];
-      next[idx] = { ...next[idx], uploading: true, progress: 0 };
+      next[idx] = { ...next[idx], uploading: true, processing: false, progress: 0 };
       return next;
     });
     try {
-      // Видео Vercel функциясы арқылы емес, тікелей Supabase Storage-қа
-      // жүктеледі — 4.5MB body лимитінен асатын нақты MP4 файлдары
-      // осылай ғана сенімді жүктеледі.
-      const url = await uploadFileDirect(ep.videoFile, 'videos', (pct) => {
+      // Видео Mux-қа тікелей жүктеледі, Mux оны транскодтайды, содан
+      // кейін дайын playbackId алынады (сайт пен қосымша осыдан ойнатады).
+      const { playbackId } = await uploadVideoToMux(ep.videoFile, (pct) => {
         setEpisodes((prev) => {
           const next = [...prev];
-          next[idx] = { ...next[idx], progress: pct };
+          next[idx] = { ...next[idx], progress: pct, processing: pct >= 100 };
           return next;
         });
       });
@@ -509,18 +516,19 @@ function DramaFormDialog({
         const next = [...prev];
         next[idx] = {
           ...next[idx],
-          videoUrl: url,
+          playbackId,
           uploading: false,
+          processing: false,
           uploaded: true,
           progress: 100,
         };
         return next;
       });
-      return url;
+      return playbackId;
     } catch (err: any) {
       setEpisodes((prev) => {
         const next = [...prev];
-        next[idx] = { ...next[idx], uploading: false };
+        next[idx] = { ...next[idx], uploading: false, processing: false };
         return next;
       });
       toast({
@@ -594,32 +602,29 @@ function DramaFormDialog({
       }
 
       // Step 2: upload any pending episode videos.
-      const newEpisodes = episodes.filter(
-        (e) => !e.isExisting && e.videoFile && !e.uploaded,
-      );
-      const uploadedEpisodes: { episodeNumber: number; title: string; videoUrl: string }[] = [];
+      const uploadedEpisodes: { episodeNumber: number; title: string; playbackId: string }[] = [];
 
       for (let i = 0; i < episodes.length; i++) {
         const ep = episodes[i];
         if (ep.isExisting) continue;
         if (!ep.videoFile) continue;
-        if (ep.uploaded && ep.videoUrl) {
+        if (ep.uploaded && ep.playbackId) {
           uploadedEpisodes.push({
             episodeNumber: ep.episodeNumber,
             title: ep.title,
-            videoUrl: ep.videoUrl,
+            playbackId: ep.playbackId,
           });
           continue;
         }
-        const uploadedUrl = await uploadEpisodeVideo(i);
-        if (!uploadedUrl) {
+        const playbackId = await uploadEpisodeVideo(i);
+        if (!playbackId) {
           setSubmitting(false);
           return;
         }
         uploadedEpisodes.push({
           episodeNumber: ep.episodeNumber,
           title: ep.title,
-          videoUrl: uploadedUrl,
+          playbackId,
         });
       }
 
@@ -845,7 +850,7 @@ function EpisodeRow({
   onTitleChange: (t: string) => void;
   onRemove?: () => void;
 }) {
-  const isReady = episode.isExisting || (episode.uploaded && !!episode.videoUrl);
+  const isReady = episode.isExisting || (episode.uploaded && !!episode.playbackId);
   const isUploading = episode.uploading;
 
   return (
@@ -876,7 +881,9 @@ function EpisodeRow({
           {episode.isExisting ? (
             <div className="flex items-center gap-2 text-xs text-emerald-400">
               <CheckCircle2 className="h-3.5 w-3.5" />
-              <span className="truncate">{episode.videoUrl.split('/').pop()}</span>
+              <span className="truncate">
+                {episode.playbackId ? `Mux: ${episode.playbackId}` : episode.videoUrl.split('/').pop()}
+              </span>
             </div>
           ) : (
             <label className="flex items-center gap-2 cursor-pointer">
@@ -885,12 +892,12 @@ function EpisodeRow({
                 <span className="truncate">
                   {episode.videoFile
                     ? episode.videoFile.name
-                    : 'MP4 видео жүктеу'}
+                    : 'Видео жүктеу'}
                 </span>
               </div>
               <input
                 type="file"
-                accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                accept="video/mp4,video/webm,video/ogg,video/quicktime,video/x-matroska,video/*"
                 className="sr-only"
                 onChange={(e) =>
                   onFileSelected(e.target.files?.[0] || null)
@@ -902,8 +909,8 @@ function EpisodeRow({
             <div className="space-y-1">
               <ProgressBar
                 value={episode.progress}
-                showPercent
-                label="Жүктелуде"
+                showPercent={!episode.processing}
+                label={episode.processing ? 'Mux видеоны өңдеуде…' : 'Жүктелуде'}
               />
             </div>
           ) : null}

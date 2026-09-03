@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "0ec35eea-0b4f-4509-ba74-21ba8ba88438"
+      }
+    },
+    "android": {
+      "package": "com.asylkhansansuzba454478645.mansurdrama.app"
+    }
+  }
+}

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Mansur Drama",
     "slug": "mansurdrama-mobile",
-    "version": "1.0.0",
+    "version": "1.2.1.5",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "mansurdrama",
@@ -18,17 +18,15 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "platform.kz.mansurdrama.app"
+      "bundleIdentifier": "kz.asylkhansansuzbaev.mansurdrama.app"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0a0a10"
       },
-      "package": "platform.kz.mansurdrama.app",
+      "package": "kz.asylkhansansuzbaev.mansurdrama.app",
       "permissions": [
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
         "INTERNET",
         "ACCESS_NETWORK_STATE"
       ]

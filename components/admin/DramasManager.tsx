@@ -7,13 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Dialog, ConfirmDialog } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
-import { uploadFileDirect } from "@/lib/client-upload";
+import { uploadFileDirect, uploadVideoToMux } from "@/lib/client-upload";
 
 interface DramaEpisode {
   id: string;
   episodeNumber: number;
   title: string;
   videoUrl: string;
+  playbackId: string | null;
 }
 
 interface Drama {
@@ -60,8 +61,10 @@ export function DramasManager() {
 
   const [episodeTitle, setEpisodeTitle] = useState("");
   const [episodeNumber, setEpisodeNumber] = useState("1");
-  const [episodeVideoUrl, setEpisodeVideoUrl] = useState("");
+  const [episodePlaybackId, setEpisodePlaybackId] = useState("");
   const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStage, setUploadStage] = useState<"idle" | "uploading" | "processing">("idle");
   const [addingEpisode, setAddingEpisode] = useState(false);
 
   const load = async () => {
@@ -99,7 +102,7 @@ export function DramasManager() {
     });
     setEpisodeNumber(String(drama.episodes.length + 1));
     setEpisodeTitle("");
-    setEpisodeVideoUrl("");
+    setEpisodePlaybackId("");
     setDialogOpen(true);
   };
 
@@ -107,17 +110,22 @@ export function DramasManager() {
 
   const handleVideoUpload = async (file: File) => {
     setUploadingVideo(true);
+    setUploadProgress(0);
+    setUploadStage("uploading");
     try {
-      // Видео Vercel функциясы арқылы емес, тікелей Supabase Storage-қа
-      // жүктеледі — 4.5MB body лимитінен асатын нақты MP4 файлдары
-      // осылай ғана сенімді жүктеледі.
-      const url = await uploadFileDirect(file, "videos");
-      setEpisodeVideoUrl(url);
+      // Видео Mux-қа тікелей жүктеледі, Mux оны транскодтайды, содан
+      // кейін дайын playbackId алынады (сайт пен қосымша осыдан ойнатады).
+      const { playbackId } = await uploadVideoToMux(file, (pct) => {
+        setUploadProgress(pct);
+        if (pct >= 100) setUploadStage("processing");
+      });
+      setEpisodePlaybackId(playbackId);
       toast({ title: "Видео жүктелді", variant: "success" });
     } catch (err: any) {
       toast({ title: "Видеоны жүктеу мүмкін болмады", description: err?.message, variant: "destructive" });
     } finally {
       setUploadingVideo(false);
+      setUploadStage("idle");
     }
   };
 
@@ -128,7 +136,7 @@ export function DramasManager() {
       toast({ title: "Бөлім нөмірі дұрыс болуы керек", variant: "warning" });
       return;
     }
-    if (!episodeVideoUrl.trim()) {
+    if (!episodePlaybackId.trim()) {
       toast({ title: "Видео файлды жүктеңіз", variant: "warning" });
       return;
     }
@@ -142,7 +150,7 @@ export function DramasManager() {
             {
               episodeNumber: num,
               title: episodeTitle.trim() || undefined,
-              videoUrl: episodeVideoUrl.trim(),
+              playbackId: episodePlaybackId.trim(),
             },
           ],
         }),
@@ -152,7 +160,7 @@ export function DramasManager() {
 
       toast({ title: "Бөлім қосылды", variant: "success" });
       setEpisodeTitle("");
-      setEpisodeVideoUrl("");
+      setEpisodePlaybackId("");
       setEpisodeNumber(String(num + 1));
       await load();
     } catch (err: any) {
@@ -471,14 +479,9 @@ export function DramasManager() {
                   </div>
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-xs text-white/60">Видео (MP4) *</label>
+                  <label className="mb-1.5 block text-xs text-white/60">Видео (Mux) *</label>
                   <div className="flex items-center gap-3">
-                    <Input
-                      value={episodeVideoUrl}
-                      onChange={(e) => setEpisodeVideoUrl(e.target.value)}
-                      placeholder="https://... немесе файл жүктеңіз"
-                    />
-                    <label className="shrink-0">
+                    <label className="flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 bg-white/5 px-3 hover:bg-white/10">
                       <input
                         type="file"
                         accept="video/mp4,video/webm,video/ogg,video/quicktime,video/x-matroska,video/*"
@@ -488,13 +491,26 @@ export function DramasManager() {
                           if (file) handleVideoUpload(file);
                         }}
                       />
-                      <span className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl border border-white/10 bg-white/5 hover:bg-white/10">
-                        {uploadingVideo ? (
+                      {uploadingVideo ? (
+                        <>
                           <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                        ) : (
-                          <Upload className="h-4 w-4 text-white" />
-                        )}
-                      </span>
+                          <span className="text-xs text-white/70">
+                            {uploadStage === "uploading"
+                              ? `Жүктелуде... ${Math.round(uploadProgress)}%`
+                              : "Mux видеоны өңдеуде..."}
+                          </span>
+                        </>
+                      ) : episodePlaybackId ? (
+                        <>
+                          <Video className="h-4 w-4 text-green-400" />
+                          <span className="text-xs text-green-400">Видео дайын — ауыстыру үшін басыңыз</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4 text-white/70" />
+                          <span className="text-xs text-white/60">Видео файл таңдаңыз</span>
+                        </>
+                      )}
                     </label>
                   </div>
                 </div>

@@ -5,6 +5,7 @@ import {
   getDramaById,
   updateDrama,
 } from '@/lib/db';
+import { playbackUrl } from '@/lib/mux';
 
 /**
  * Бөлімдер тізімін алу (mobile/веб плеер үшін — авторизация қажет емес).
@@ -24,7 +25,8 @@ export async function GET(
 interface IncomingEpisode {
   episodeNumber: number;
   title?: string;
-  videoUrl: string;
+  videoUrl?: string;
+  playbackId?: string;
   duration?: number;
   thumbnail?: string | null;
 }
@@ -54,12 +56,21 @@ export async function POST(
       return NextResponse.json({ error: 'Дорама табылмады' }, { status: 404 });
     }
     const validEpisodes = episodes
-      .filter((e) => e && Number.isInteger(e.episodeNumber) && e.episodeNumber > 0 && e.videoUrl)
+      .filter(
+        (e) =>
+          e &&
+          Number.isInteger(e.episodeNumber) &&
+          e.episodeNumber > 0 &&
+          (e.videoUrl || e.playbackId),
+      )
       .map((e) => ({
         dramaId: id,
         episodeNumber: e.episodeNumber,
         title: (e.title && e.title.trim()) || `Бөлім ${e.episodeNumber}`,
-        videoUrl: e.videoUrl,
+        // Ескі жол — Supabase Storage-тағы raw MP4 URL. Mux бөлімдер үшін
+        // playbackId арқылы HLS стрим ойнатылады, videoUrl fallback ретінде сақталады.
+        videoUrl: e.videoUrl || (e.playbackId ? playbackUrl(e.playbackId) : ''),
+        playbackId: e.playbackId ?? null,
         duration: e.duration ?? 0,
         thumbnail: e.thumbnail ?? null,
       }));
