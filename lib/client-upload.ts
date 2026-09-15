@@ -92,26 +92,30 @@ export async function uploadVideoToMux(
       chunkSize: 30720, // ~30MB chunk-тар
     });
     upload.on('error', (err: any) => reject(new Error(err?.detail || 'Mux жүктеу қатесі')));
-    upload.on('progress', (evt: any) => onProgress?.(evt.detail));
+    upload.on('progress', (evt: any) => {
+      const pct = evt.detail;
+      onProgress?.(pct >= 100 ? 99 : pct);
+    });
     upload.on('success', () => resolve());
   });
 
   // 3) Mux видеоны өңдеп бітіргенше polling (playbackId дайын болғанша).
   const start = Date.now();
-  const TIMEOUT_MS = 10 * 60 * 1000; // 10 минут
+  const TIMEOUT_MS = 30 * 60 * 1000; // 30 минут
   while (Date.now() - start < TIMEOUT_MS) {
     const statusRes = await fetch(`/api/upload/mux/status?uploadId=${encodeURIComponent(uploadId)}`);
     const status = await statusRes.json();
     if (!statusRes.ok) throw new Error(status?.error || 'Mux статусын алу мүмкін болмады');
 
     if (status.assetStatus === 'errored') {
-      throw new Error('Mux видеоны өңдей алмады (errored)');
+      throw new Error('Mux видеоны өңдей алмады (errored). Файлды тексеріп, қайта жүктеңіз.');
     }
     if (status.playbackId) {
+      onProgress?.(100);
       return { playbackId: status.playbackId, assetId: status.assetId, uploadId };
     }
     await new Promise((r) => setTimeout(r, 3000));
   }
 
-  throw new Error('Mux видеоны өңдеу тым ұзаққа созылды (10 минуттан асты)');
+  throw new Error('Mux видеоны өңдеу тым ұзаққа созылды (30 минуттан асты)');
 }

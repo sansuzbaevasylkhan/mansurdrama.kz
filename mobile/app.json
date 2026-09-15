@@ -2,7 +2,7 @@
   "expo": {
     "name": "Mansur Drama",
     "slug": "mansurdrama-mobile",
-    "version": "1.2.1.5",
+    "version": "1.2.1.7",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "mansurdrama",
@@ -21,6 +21,7 @@
       "bundleIdentifier": "kz.asylkhansansuzbaev.mansurdrama.app"
     },
     "android": {
+      "versionCode": 4,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0a0a10"
@@ -37,7 +38,10 @@
     },
     "plugins": [
       "expo-router",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-asset",
+      "expo-image",
+      "expo-status-bar"
     ],
     "extra": {
       "router": {
@@ -48,9 +52,9 @@
       "googleAndroidClientId": "",
       "googleIosClientId": "",
       "eas": {
-        "projectId": "3907d573-0c72-48af-ad39-7c21a7e97a71"
+        "projectId": "5d56a1aa-eb90-4289-a4c9-117d75d93bbf"
       }
     },
-    "owner": "asylkhansansuzba454478645"
+    "owner": "sansuzbaev856ghjk"
   }
 }

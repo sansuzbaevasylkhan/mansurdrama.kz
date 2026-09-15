@@ -508,7 +508,7 @@ function DramaFormDialog({
       const { playbackId } = await uploadVideoToMux(ep.videoFile, (pct) => {
         setEpisodes((prev) => {
           const next = [...prev];
-          next[idx] = { ...next[idx], progress: pct, processing: pct >= 100 };
+          next[idx] = { ...next[idx], progress: pct, processing: pct >= 99 };
           return next;
         });
       });
