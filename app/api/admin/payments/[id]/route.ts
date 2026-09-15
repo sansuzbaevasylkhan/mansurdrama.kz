@@ -8,7 +8,7 @@ const bodySchema = z.object({
 });
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const guard = await requireAdmin();
+  const guard = await requireAdmin(request);
   if (guard) return guard;
 
   const { id } = await params;

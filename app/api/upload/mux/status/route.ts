@@ -9,7 +9,7 @@ import { getUploadStatus } from '@/lib/mux';
  * (playbackId дайын болғанша) осы route-ты polling жасайды.
  */
 export async function GET(request: NextRequest) {
-  const guard = await requireAdmin();
+  const guard = await requireAdmin(request);
   if (guard) return guard;
 
   const uploadId = request.nextUrl.searchParams.get('uploadId');

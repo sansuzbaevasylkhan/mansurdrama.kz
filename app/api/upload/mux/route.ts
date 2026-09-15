@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/api-guards';
 import { createDirectUpload, isMuxConfigured } from '@/lib/mux';
 
@@ -11,8 +11,8 @@ import { createDirectUpload, isMuxConfigured } from '@/lib/mux';
  *
  * Response: { uploadId, url }
  */
-export async function POST() {
-  const guard = await requireAdmin();
+export async function POST(request: NextRequest) {
+  const guard = await requireAdmin(request);
   if (guard) return guard;
 
   if (!isMuxConfigured()) {

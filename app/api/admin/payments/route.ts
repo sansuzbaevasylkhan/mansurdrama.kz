@@ -3,7 +3,7 @@ import { requireAdmin } from '@/lib/api-guards';
 import { prisma } from '@/lib/prisma';
 
 export async function GET(_request: NextRequest) {
-  const guard = await requireAdmin();
+  const guard = await requireAdmin(_request);
   if (guard) return guard;
 
   const payments = await prisma.payment.findMany({

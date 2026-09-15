@@ -18,7 +18,7 @@ import type { UploadSubdir } from '@/lib/upload';
 const ALLOWED_SUBDIRS: UploadSubdir[] = ['posters', 'videos', 'avatars'];
 
 export async function POST(request: NextRequest) {
-  const guard = await requireAdmin();
+  const guard = await requireAdmin(request);
   if (guard) return guard;
 
   try {

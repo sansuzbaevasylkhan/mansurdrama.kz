@@ -31,7 +31,7 @@ function resolveSubdir(raw: unknown): UploadSubdir | null {
 }
 
 export async function POST(request: NextRequest) {
-  const guard = await requireAdmin();
+  const guard = await requireAdmin(request);
   if (guard) return guard;
 
   try {

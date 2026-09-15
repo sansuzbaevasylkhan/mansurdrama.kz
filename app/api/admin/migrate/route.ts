@@ -28,7 +28,7 @@ export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   // 1) Админ-сессия тексеру
-  const guard = await requireAdmin();
+  const guard = await requireAdmin(request);
   if (guard) return guard;
 
   // 2) ADMIN_TOKEN тексеру (CRON/CI үшін)

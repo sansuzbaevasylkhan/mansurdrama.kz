@@ -5,8 +5,8 @@ import { getAllUsers, createUser } from '@/lib/db';
 import { hashPassword } from '@/lib/auth';
 import { sendWelcomeEmail } from '@/lib/mailer';
 
-export async function GET() {
-  const guard = await requireAdmin();
+export async function GET(request: NextRequest) {
+  const guard = await requireAdmin(request);
   if (guard) return guard;
   try {
     const users = await getAllUsers();
@@ -29,7 +29,7 @@ const createSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  const guard = await requireAdmin();
+  const guard = await requireAdmin(request);
   if (guard) return guard;
 
   try {
