@@ -134,7 +134,7 @@ export function VideoPlayer({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
       className={cn(
-        'relative overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl shadow-black/40',
+        'relative overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl shadow-black/40 aspect-[9/16] max-w-[400px] mx-auto',
         className,
       )}
     >
@@ -145,7 +145,7 @@ export function VideoPlayer({
         muted={muted}
         playsInline
         preload="metadata"
-        className="w-full h-full aspect-video bg-black"
+        className="w-full h-full object-cover bg-black"
         onClick={togglePlay}
       />
       {isLoading ? (

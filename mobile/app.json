@@ -47,7 +47,7 @@
       "router": {
         "origin": false
       },
-      "apiBaseUrl": "https://mansurdrama-kz.vercel.app",
+      "apiBaseUrl": "https://mansurdramakz.vercel.app",
       "googleWebClientId": "",
       "googleAndroidClientId": "",
       "googleIosClientId": "",
