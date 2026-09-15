@@ -10,6 +10,12 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const search = searchParams.get('q') || '';
   const admin = searchParams.get('admin') === '1';
+
+  if (admin) {
+    const guard = await requireAdmin(request);
+    if (guard) return guard;
+  }
+
   try {
     const dramas = admin
       ? await getAllDramasForAdmin()

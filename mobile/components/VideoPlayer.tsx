@@ -53,14 +53,14 @@ export function VideoPlayer({ videoUrl, posterUrl, title, onLocked }: Props) {
   return (
     <Pressable
       onPress={toggleControls}
-      className="relative aspect-video w-full overflow-hidden rounded-2xl border border-white/10 bg-black"
+      className="relative aspect-[9/16] w-full overflow-hidden rounded-2xl border border-white/10 bg-black"
     >
       <Video
         ref={ref}
         source={{ uri: videoUrl }}
         posterSource={posterUrl ? { uri: posterUrl } : undefined}
         usePoster={!!posterUrl}
-        resizeMode={ResizeMode.CONTAIN}
+        resizeMode={ResizeMode.COVER}
         shouldPlay={false}
         isMuted={muted}
         useNativeControls={false}
