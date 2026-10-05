@@ -2,19 +2,22 @@ import React, { useEffect } from "react";
 import "../global.css";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { View, Text } from "react-native";
+import { View, Text, Platform } from "react-native";
 import * as Notifications from 'expo-notifications';
 import { registerForPushNotificationsAsync } from '@/lib/notifications';
-import { useNetwork } from '@/lib/useNetwork';
+import {/lib/useNetwork';
 import { NetworkStatusBar } from '@/components/ui/NetworkStatusBar';
+import * as NavigationBar from 'expo-navigation-bar';
 
 // Configure how notifications are handled when the app is foregrounded
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
+  handleNotification: async () => {
+    return {
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    };
+  },
 });
 
 interface ErrorBoundaryProps {
@@ -54,22 +57,32 @@ export default function RootLayout() {
   const { isConnected } = useNetwork();
 
   useEffect(() => {
-    // Register for push notifications on app start
+    // 1. Push notifications registration
     registerForPushNotificationsAsync()
       .then(token => {
         if (token) {
           console.log('Expo Push Token:', token);
-          // Мұнда токенді серверге (Supabase/Firebase) жіберу логикасын қосу керек
         }
       })
       .catch(err => console.error('Notification registration error:', err));
+
+    // 2. Fullscreen Mode Configuration (Android)
+    if (Platform.OS === 'android') {
+      // Hide the navigation bar (bottom buttons)
+      NavigationBar.setBehaviorAsync('inset-touch');
+      NavigationBar.setVisibilityAsync('hidden');
+
+      // Make sure it stays hidden unless user swipes from bottom
+      NavigationBar.setBehaviorAsync('inset-touch');
+    }
   }, []);
 
   return (
     <ErrorBoundary>
       <>
         <NetworkStatusBar isConnected={isConnected} />
-        <StatusBar style="light" />
+        {/* hidden prop hides the top status bar (time, battery) */}
+        <StatusBar hidden={true} style="light" />
         <Stack
           screenOptions={{
             headerShown: false,
