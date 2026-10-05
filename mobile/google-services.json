@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "196902962420",
+    "firebase_url": "https://mansurdrama-default-rtdb.firebaseio.com",
+    "project_id": "mansurdrama",
+    "storage_bucket": "mansurdrama.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:196902962420:android:8eac978a4ad8b2b7bf4aa1",
+        "android_client_info": {
+          "package_name": "kz.asylkhansansuzbaev.mansurdrama.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDmWn1gPczaaFhXAD68-a5d-oHoYxsUpyA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

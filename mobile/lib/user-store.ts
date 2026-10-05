@@ -27,24 +27,34 @@ export const useUser = create<UserState>((set) => ({
   loading: false,
   hydrated: false,
   async hydrate() {
-    const [token, user] = await Promise.all([
-      userStore.getToken(),
-      userStore.getUser(),
-    ]);
-    set({ token, user, hydrated: true });
+    try {
+      const [token, user] = await Promise.all([
+        userStore.getToken().catch(() => null),
+        userStore.getUser().catch(() => null),
+      ]);
+      set({
+        token: token ?? null,
+        user: user ?? null,
+        hydrated: true
+      });
 
-    // Сессияны серверден тексеру — admin қолданушыны өшірсе,
-    // токен жарамды болса да, автоматты шығарамыз.
-    if (token) {
-      try {
-        const res = await apiFetch<{ user: PublicUser | null }>("/api/auth/me");
-        if (!res.user) {
-          await userStore.clear();
-          set({ token: null, user: null });
+      // Сессияны серверден тексеру — admin қолданушыны өшірсе,
+      // токен жарамды болса да, автоматты шығарамыз.
+      if (token) {
+        try {
+          const res = await apiFetch<{ user: PublicUser | null }>("/api/auth/me");
+          if (res && !res.user) {
+            await userStore.clear().catch(() => {});
+            set({ token: null, user: null });
+          }
+        } catch (e) {
+          // Желі қатесі — офлайн режимде сессияны сақтап қаламыз
+          console.log("Session check failed (offline):", e);
         }
-      } catch {
-        // Желі қатесі — офлайн режимде сессияны сақтап қаламыз
       }
+    } catch (e) {
+      console.error("Critical hydration failure:", e);
+      set({ hydrated: true }); // Қосымша тоқтап қалмауы үшін hydrated: true жасаймыз
     }
   },
   async login(email, name) {

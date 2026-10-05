@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { View, Text, Pressable, ActivityIndicator, Share } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ResizeMode, Video } from "expo-av";
+import { useVideoPlayer, VideoView } from "expo-video";
 import {
   ArrowLeft,
   Play,
@@ -33,19 +33,18 @@ export default function WatchScreen() {
   const router = useRouter();
   const { user } = useUser();
 
-  const ref = useRef<Video>(null);
-  const [status, setStatus] = useState<any>({});
-  const statusRef = useRef<any>({});
   const [muted, setMuted] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [resumeMillis, setResumeMillis] = useState<number | null>(null);
-  // Video компонентін resume позициясы анықталғанша көрсетпей тұрамыз —
-  // әйтпесе 0-ден ойнап кетіп, кейін позиция ауыстыру секіріп кетеді.
   const [resumeReady, setResumeReady] = useState(!user);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedAt = useRef(0);
 
-  // Логин болған қолданушы үшін — бөлімді бұрын қайда тоқтатқанын алу.
+  const player = useVideoPlayer(params.videoUrl, (p) => {
+    p.loop = false;
+    p.muted = muted;
+  });
+
   useEffect(() => {
     if (!user || !params.episodeId) {
       setResumeReady(true);
@@ -55,12 +54,14 @@ export default function WatchScreen() {
       .progress(params.episodeId)
       .then((res) => {
         if (res.progress && !res.progress.completed && res.progress.positionSeconds > 5) {
-          setResumeMillis(res.progress.positionSeconds * 1000);
+          setResumeMillis(res.progress.positionSeconds);
+          // Set the player current time
+          player.currentTime = res.progress.positionSeconds;
         }
       })
       .catch(() => {})
       .finally(() => setResumeReady(true));
-  }, [user, params.episodeId]);
+  }, [user, params.episodeId, player]);
 
   const saveProgress = (positionSeconds: number, durationSeconds: number) => {
     if (!user || !params.episodeId || !params.dramaId || durationSeconds <= 0) return;
@@ -75,16 +76,24 @@ export default function WatchScreen() {
   };
 
   useEffect(() => {
-    return () => {
-      // Экраннан шыққанда соңғы позицияны сақтап қалу (ref — stale closure болмас үшін).
-      const s = statusRef.current;
-      if (s.positionMillis && s.durationMillis) {
-        saveProgress(s.positionMillis / 1000, s.durationMillis / 1000);
+    // Auto-save progress every 10 seconds
+    const interval = setInterval(() => {
+      if (player.playing && player.duration > 0) {
+        const now = Date.now();
+        if (now - lastSavedAt.current > 10000) {
+          saveProgress(player.currentTime, player.duration);
+          lastSavedAt.current = now;
+        }
       }
-      ref.current?.unloadAsync().catch(() => {});
+    }, 5000);
+
+    return () => {
+      clearInterval(interval);
+      if (user && params.episodeId && params.dramaId) {
+        saveProgress(player.currentTime, player.duration);
+      }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [user, params.episodeId, params.dramaId, player]);
 
   useEffect(() => {
     hideTimer.current = setTimeout(() => setShowControls(false), 3000);
@@ -93,17 +102,19 @@ export default function WatchScreen() {
     };
   }, []);
 
-  const togglePlay = async () => {
-    if (!ref.current) return;
-    if (status.isPlaying) await ref.current.pauseAsync();
-    else await ref.current.playAsync();
+  const togglePlay = () => {
+    if (player.playing) {
+      player.pause();
+    } else {
+      player.play();
+    }
   };
 
   const toggleControls = () => {
     setShowControls((s) => !s);
-    if (hideTimer.current) clearTimeout(hideTimer.current);
-    if (!status.isPlaying) return;
-    hideTimer.current = setTimeout(() => setShowControls(false), 3000);
+    if (player.playing) {
+      hideTimer.current = setTimeout(() => setShowControls(false), 3000);
+    }
   };
 
   const onShare = async () => {
@@ -114,11 +125,11 @@ export default function WatchScreen() {
     } catch {}
   };
 
-  const isPlaying = !!status.isPlaying;
-  const isLoading = !resumeReady || status.isBuffering || !status.isLoaded;
+  const isPlaying = player.playing;
+  const isLoading = !resumeReady || player.status === 'loading';
   const progress =
-    status.durationMillis && status.positionMillis
-      ? (status.positionMillis / status.durationMillis) * 100
+    player.duration > 0
+      ? (player.currentTime / player.duration) * 100
       : 0;
 
   return (
@@ -127,38 +138,21 @@ export default function WatchScreen() {
 
       <Pressable className="absolute inset-0" onPress={toggleControls}>
         {resumeReady ? (
-        <Video
-          ref={ref}
-          source={{ uri: params.videoUrl }}
-          posterSource={params.posterUrl ? { uri: params.posterUrl } : undefined}
-          usePoster={!!params.posterUrl}
-          resizeMode={ResizeMode.CONTAIN}
-          shouldPlay
-          isMuted={muted}
-          positionMillis={resumeMillis ?? undefined}
-          useNativeControls={false}
-          onPlaybackStatusUpdate={(s: any) => {
-            setStatus(s);
-            statusRef.current = s;
-            // Әр ~10 секунд сайын прогресті сақтау (артық сұраныс жібермеу үшін).
-            if (s.isLoaded && s.positionMillis && s.durationMillis) {
-              const now = Date.now();
-              if (now - lastSavedAt.current > 10000) {
-                lastSavedAt.current = now;
-                saveProgress(s.positionMillis / 1000, s.durationMillis / 1000);
-              }
-            }
-          }}
-          style={{ width: "100%", height: "100%", backgroundColor: "#000" }}
-        />
+          <VideoView
+            player={player}
+            contentFit="contain"
+            poster={params.posterUrl ? { uri: params.posterUrl } : undefined}
+            style={{ width: "100%", height: "100%", backgroundColor: "#000" }}
+            nativeControls={false}
+          />
         ) : null}
       </Pressable>
 
-      {isLoading ? (
+      {isLoading && (
         <View pointerEvents="none" className="absolute inset-0 items-center justify-center">
           <ActivityIndicator color="#fff" size="large" />
         </View>
-      ) : null}
+      )}
 
       {!isPlaying && !isLoading && showControls ? (
         <Pressable
@@ -169,7 +163,6 @@ export default function WatchScreen() {
         </Pressable>
       ) : null}
 
-      {/* Артқа қайту */}
       <SafeAreaView edges={["top"]} pointerEvents="box-none" className="absolute top-0 left-0 right-0">
         <Pressable
           onPress={() => router.back()}
@@ -180,7 +173,6 @@ export default function WatchScreen() {
         </Pressable>
       </SafeAreaView>
 
-      {/* Оң жақтағы әрекет батырмалары */}
       <View className="absolute right-3 bottom-28 items-center gap-6">
         <Pressable onPress={onShare} className="items-center">
           <View
@@ -193,7 +185,6 @@ export default function WatchScreen() {
         </Pressable>
       </View>
 
-      {/* Төменгі ақпарат пен басқару */}
       <View
         pointerEvents="box-none"
         className="absolute inset-x-0 bottom-0 px-4 pb-4 pt-16"
@@ -235,20 +226,20 @@ export default function WatchScreen() {
                   <Play size={18} color="#fff" fill="#fff" />
                 )}
               </Pressable>
-              <Pressable onPress={() => setMuted((m) => !m)} className="p-1.5">
-                {muted ? <VolumeX size={18} color="#fff" /> : <Volume2 size={18} color="#fff" />}
-              </Pressable>
+              <Pressable onPress={() => {
+                setMuted(!muted);
+                player.muted = !muted;
+              }} className="p-1.5">
+                {muted ? <VolumeX size={18} color="#fff" /> : <Volume2 size={18} color="#fff} />
+              }
               <Text className="text-xs text-white/70">
-                {formatDuration((status.positionMillis ?? 0) / 1000)} /{" "}
-                {formatDuration((status.durationMillis ?? 0) / 1000)}
+                {formatDuration(player.currentTime)} /{" "}
+                {formatDuration(player.duration)}
               </Text>
               <View className="flex-1" />
               <Pressable
-                onPress={async () => {
-                  if (!ref.current) return;
-                  try {
-                    await ref.current.presentFullscreenPlayer();
-                  } catch {}
+                onPress={() => {
+                  player.presentFullscreenPlayer();
                 }}
                 className="p-1.5"
               >

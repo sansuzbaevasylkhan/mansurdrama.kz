@@ -1,7 +1,7 @@
 import { View, Text, Pressable, ActivityIndicator } from "react-native";
-import { ResizeMode, Video } from "expo-av";
+import { useVideoPlayer, VideoView } from "expo-video";
 import { Play, Pause, Volume2, VolumeX, Maximize } from "lucide-react-native";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { formatDuration } from "@/lib/utils";
 
 interface Props {
@@ -12,60 +12,44 @@ interface Props {
 }
 
 export function VideoPlayer({ videoUrl, posterUrl, title, onLocked }: Props) {
-  const ref = useRef<Video>(null);
-  const [status, setStatus] = useState<any>({});
-  const [muted, setMuted] = useState(true);
+  const player = useVideoPlayer(videoUrl, (player) => {
+    player.loop = false;
+    player.muted = true;
+  });
+
   const [showControls, setShowControls] = useState(true);
-  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [muted, setMuted] = useState(true);
 
   useEffect(() => {
-    return () => {
-      ref.current?.unloadAsync().catch(() => {});
-    };
-  }, []);
+    player.muted = muted;
+  }, [muted, player]);
 
-  const togglePlay = async () => {
-    if (!ref.current) return;
-    if (status.isPlaying) await ref.current.pauseAsync();
-    else await ref.current.playAsync();
+  const togglePlay = () => {
+    if (player.playing) {
+      player.pause();
+    } else {
+      player.play();
+    }
   };
 
   const toggleControls = () => {
     setShowControls((s) => !s);
-    if (hideTimer.current) clearTimeout(hideTimer.current);
-    if (!status.isPlaying) {
-      hideTimer.current = setTimeout(() => setShowControls(false), 3000);
-    }
   };
 
-  const onSeek = async (e: any) => {
-    if (!ref.current || !status.duration) return;
-    const x = e.nativeEvent.locationX;
-    const seekStatus = await ref.current.getStatusAsync();
-    const width = seekStatus.isLoaded ? seekStatus.positionMillis : 1;
-    // Өте қарапайым: percentage-ке байланысты емес, тек x/duration.
-    // Нақты өлшем үшін onLayout + measure қажет — Expo-av өз progressBar-ын қолданады.
-  };
-
-  const isPlaying = !!status.isPlaying;
-  const isLoading = status.isBuffering || (!status.isLoaded && !onLocked);
+  const isPlaying = player.playing;
+  const isLoading = player.status === 'loading';
 
   return (
     <Pressable
       onPress={toggleControls}
       className="relative aspect-[9/16] w-full overflow-hidden rounded-2xl border border-white/10 bg-black"
     >
-      <Video
-        ref={ref}
-        source={{ uri: videoUrl }}
-        posterSource={posterUrl ? { uri: posterUrl } : undefined}
-        usePoster={!!posterUrl}
-        resizeMode={ResizeMode.COVER}
-        shouldPlay={false}
-        isMuted={muted}
-        useNativeControls={false}
-        onPlaybackStatusUpdate={(s) => setStatus(s)}
+      <VideoView
+        player={player}
+        contentFit="cover"
+        poster={posterUrl ? { uri: posterUrl } : undefined}
         style={{ width: "100%", height: "100%", backgroundColor: "#000" }}
+        nativeControls={false}
       />
 
       {isLoading ? (
@@ -103,7 +87,7 @@ export function VideoPlayer({ videoUrl, posterUrl, title, onLocked }: Props) {
             <View
               className="h-full rounded-full"
               style={{
-                width: `${status.durationMillis ? (status.positionMillis / status.durationMillis) * 100 : 0}%`,
+                width: `${(player.currentTime / (player.duration || 1)) * 100}%`,
                 backgroundColor: "#ec4899",
               }}
             />
@@ -116,16 +100,14 @@ export function VideoPlayer({ videoUrl, posterUrl, title, onLocked }: Props) {
               {muted ? <VolumeX size={18} color="#fff" /> : <Volume2 size={18} color="#fff" />}
             </Pressable>
             <Text className="text-xs text-white/70">
-              {formatDuration((status.positionMillis ?? 0) / 1000)} /{" "}
-              {formatDuration((status.durationMillis ?? 0) / 1000)}
+              {formatDuration(player.currentTime)} /{" "}
+              {formatDuration(player.duration)}
             </Text>
             <View className="flex-1" />
             <Pressable
-              onPress={async () => {
-                if (!ref.current) return;
-                try {
-                  await ref.current.presentFullscreenPlayer();
-                } catch {}
+              onPress={() => {
+                // expo-video handle fullscreen automatically or via player
+                player.presentFullscreenPlayer();
               }}
               className="p-1.5"
             >
