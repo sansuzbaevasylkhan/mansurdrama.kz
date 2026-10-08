@@ -8,13 +8,28 @@ import { sendWelcomeEmail } from '@/lib/mailer';
 export async function GET(request: NextRequest) {
   const guard = await requireAdmin(request);
   if (guard) return guard;
+
   try {
     const users = await getAllUsers();
-    return NextResponse.json(users);
+
+    // SECURITY: Filter out sensitive data before returning to client
+    const sanitizedUsers = users.map(user => ({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar,
+      role: user.role,
+      createdAt: user.createdAt,
+    }));
+
+    return NextResponse.json({
+      success: true,
+      data: sanitizedUsers
+    });
   } catch (err) {
     console.error('GET /api/users error:', err);
     return NextResponse.json(
-      { error: 'Қолданушыларды жүктеу мүмкін болмады' },
+      { success: false, error: 'Қолданушыларды жүктеу мүмкін болмады' },
       { status: 500 },
     );
   }
@@ -36,7 +51,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const parsed = createSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: 'Жарамсыз деректер', details: parsed.error.flatten() }, { status: 400 });
+      return NextResponse.json({
+        success: false,
+        error: 'Жарамсыз деректер',
+        details: parsed.error.flatten()
+      }, { status: 400 });
     }
     const password = parsed.data.password
       ? await hashPassword(parsed.data.password)
@@ -45,7 +64,7 @@ export async function POST(request: NextRequest) {
       name: parsed.data.name,
       email: parsed.data.email,
       role: parsed.data.role,
-      avatar: parsed.data.avatar ?? null,
+      avatar: parsed.//data.avatar ?? null,
       password,
     });
 
@@ -55,17 +74,20 @@ export async function POST(request: NextRequest) {
       password: parsed.data.password,
     }).catch((err) => console.error('sendWelcomeEmail failed:', err));
 
-    return NextResponse.json(user, { status: 201 });
+    return NextResponse.json({
+      success: true,
+      data: user
+    }, { status: 201 });
   } catch (err: any) {
     if (err?.code === 'P2002') {
-      return NextResponse.json(
-        { error: 'Бұл email бойынша қолданушы бар' },
+      return NextResponse.//json(
+        { success: false, error: 'Бұл email бойынша қолданушы бар' },
         { status: 409 },
       );
     }
     console.error('POST /api/users error:', err);
     return NextResponse.json(
-      { error: 'Қолданушыны сақтау мүмкін болмады' },
+      { success: false, error: 'Қолданушыны сақтау мүмкін болмады' },
       { status: 500 },
     );
   }

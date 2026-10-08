@@ -6,18 +6,17 @@ import type { UploadSubdir } from '@/lib/upload';
 /**
  * POST /api/upload/sign
  *
- * Үлкен файлдар (видео) үшін — байт ағыны Vercel serverless
- * функциясынан ӨТПЕЙДІ (4.5MB body лимитін айналып өтеді).
- * Клиент осы жерден signed upload URL алады да, файлды ТІКЕЛЕЙ
- * Supabase Storage-қа жібереді.
+ * Generates a signed upload URL for large files (videos/posters).
+ * Security: Requires admin authentication.
  *
  * Body: { filename: string, size: number, mimeType: string, subdir: "videos" | "posters" | "avatars" }
- * Response: { path, token, publicUrl, signedUrl }
+ * Response: { success: true, data: { path, token, publicUrl, signedUrl } }
  */
 
 const ALLOWED_SUBDIRS: UploadSubdir[] = ['posters', 'videos', 'avatars'];
 
 export async function POST(request: NextRequest) {
+  // 1. Authentication & Authorization
   const guard = await requireAdmin(request);
   if (guard) return guard;
 
@@ -25,27 +24,52 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { filename, size, mimeType, subdir } = body ?? {};
 
-    if (!ALLOWED_SUBDIRS.includes(subdir)) {
+    // 2. Input Validation
+    if (!filename || typeof filename !== 'string' || filename.trim() === '') {
+      return NextResponse.json({ success: false, error: 'Valid filename is required' }, { status: 400 });
+    }
+    if (!size || typeof size !== 'number' || size <= 0) {
+      return NextResponse.json({ success: false, error: 'Valid file size is required' }, { status: 400 });
+    }
+    if (!mimeType || typeof mimeType !== 'string') {
+      return NextResponse.//json({ success: false, error: 'Valid MIME type is required' }, { status: 400 });
+    }
+    if (!subdir || !ALLOWED_SUBDIRS.includes(subdir)) {
       return NextResponse.json(
-        { error: 'subdir posters/videos/avatars болуы керек' },
+        { success: false, error: `Invalid subdir. Allowed: ${ALLOWED_SUBDIRS.join(', ')}` },
         { status: 400 },
       );
     }
-    if (!filename || typeof filename !== 'string') {
-      return NextResponse.json({ error: 'filename қажет' }, { status: 400 });
-    }
-    if (!Number.isFinite(size) || size <= 0) {
-      return NextResponse.json({ error: 'size қажет' }, { status: 400 });
-    }
-    if (!mimeType || typeof mimeType !== 'string') {
-      return NextResponse.json({ error: 'mimeType қажет' }, { status: 400 });
-    }
 
-    const ticket = await createUploadTicket(filename, size, mimeType, subdir);
-    return NextResponse.json(ticket, { status: 201 });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Signed URL жасау мүмкін болмады';
+    // 3. External Service Integration
+    try {
+      const ticket = await createUploadTicket(filename, size, mimeType, subdir);
+
+      return NextResponse.json({
+        success: true,
+        data: ticket
+      }, { status: 201 });
+    } catch (providerErr: any) {
+      console.error('[Upload Sign] Provider error:', providerErr);
+
+      // Check if it's a configuration error (missing env vars)
+      if (providerErr.message?.includes('API key') || providerErr.message?.includes('secret')) {
+        return NextResponse.json(
+          { success: false, error: 'Upload service is not configured on server' },
+          { status: 503 },
+        );
+      }
+
+      return NextResponse.json(
+        { success: false, error: 'External upload provider error' },
+        { status: 503 },
+      );
+    }
+  } catch (err: any) {
     console.error('POST /api/upload/sign error:', err);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: 'Invalid request body' },
+      { status: 400 },
+    );
   }
 }

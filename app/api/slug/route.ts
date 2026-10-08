@@ -9,24 +9,47 @@ import { generateUniqueSlug } from '@/lib/db';
  * a slug string, never mutates database state.
  */
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const title = searchParams.get('title') || '';
-
-  if (!title.trim()) {
-    return NextResponse.json({ slug: '' }, { status: 200 });
-  }
-
   try {
-    const slug = await generateUniqueSlug(title);
-//    console.//Log for debugging (optional)
-    if (!slug) {
-      return NextResponse.json({ error: 'Slug генерациялау мүмкін болмады' }, { status: 400 });
+    const { searchParams } = new URL(request.url);
+    let title = searchParams.get('title');
+
+    if (title === null || title === undefined) {
+      return NextResponse.json(
+        { success: false, error: 'Title is required' },
+        { status: 400 }
+      );
     }
-    return NextResponse.json({ slug }, { status: 200 });
+
+    // Ensure the title is correctly decoded from URL encoding (UTF-8)
+    try {
+      title = decodeURIComponent(title);
+    } catch (e) {
+      console.error('[Slug API] URI decode error:', e);
+      // Fallback to raw title if decode fails
+    }
+
+    if (!title.trim()) {
+      return NextResponse.json({ success: true, slug: '' }, { status: 200 });
+    }
+
+    const slug = await generateUniqueSlug(title);
+
+    if (!slug) {
+      return NextResponse.json(
+        { success: false, error: 'Slug generation failed' },
+        { status: 422 }
+      );
+    }
+
+    return NextResponse.json({ success: true, slug }, { status: 200 });
   } catch (err) {
     console.error('GET /api/slug error:', err);
     return NextResponse.json(
-      { error: 'Серверде ішкі қате орын алды', errorDetails: process.env.NODE_ENV === 'development' ? err instanceof Error ? err.message : String(err) : undefined },
+      {
+        success: false,
+        error: 'Internal server error',
+        details: process.env.NODE_ENV === 'development' ? (err instanceof Error ? err.message : String(err)) : undefined
+      },
       { status: 500 }
     );
   }
