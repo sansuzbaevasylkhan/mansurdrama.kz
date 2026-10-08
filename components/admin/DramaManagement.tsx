@@ -63,7 +63,10 @@ export function DramaManagement() {
   const fetchDramas = React.useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/dramas?admin=1', { cache: 'no-store' });
+      const res = await fetch('/api/dramas?admin=1', {
+        cache: 'no-store',
+        credentials: 'include'
+      });
       if (!res.ok) throw new Error();
       const data = (await res.json()) as DramaWithEpisodes[];
       setDramas(data);
@@ -412,9 +415,12 @@ function DramaFormDialog({
     }
   }, [open, editing]);
 
-  // Auto-slug from title (debounced).
+  // Auto-slug from title (debounced with AbortController).
   React.useEffect(() => {
     if (!open || !slugAuto) return;
+
+    const controller = new AbortController();
+
     const handle = setTimeout(async () => {
       if (!title.trim()) {
         setSlug('');
@@ -423,16 +429,23 @@ function DramaFormDialog({
       try {
         const res = await fetch(
           `/api/slug?title=${encodeURIComponent(title)}`,
+          { signal: controller.signal }
         );
         if (res.ok) {
           const data = await res.json();
           if (data.slug) setSlug(data.slug);
         }
-      } catch {
-        // Non-fatal
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          console.error('Slug fetch error:', err);
+        }
       }
-    }, 250);
-    return () => clearTimeout(handle);
+    }, 400);
+
+    return () => {
+      clearTimeout(handle);
+      controller.abort();
+    };
   }, [title, slugAuto, open]);
 
   // Keep episode array length in sync with totalEpisodes.
