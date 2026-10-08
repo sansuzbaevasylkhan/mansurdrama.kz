@@ -581,6 +581,7 @@ function DramaFormDialog({
         const res = await fetch(`/api/dramas/${editing.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({
             title,
             slug,
@@ -598,6 +599,7 @@ function DramaFormDialog({
         const res = await fetch('/api/dramas', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({
             title,
             slug,
@@ -646,6 +648,7 @@ function DramaFormDialog({
         const res = await fetch(`/api/dramas/${dramaId}/episodes`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ episodes: uploadedEpisodes }),
         });
         if (!res.ok) {

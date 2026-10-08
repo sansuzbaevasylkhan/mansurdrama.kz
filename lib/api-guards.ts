@@ -36,7 +36,7 @@ export async function requireAdmin(request?: NextRequest) {
 
   // 2. Check cookies (regular session)
   const session = await getSession();
-  if (session && session.role === 'ADMIN') {
+  if (session && (session.role === 'ADMIN' || session.role === 'admin')) {
     return null;
   }
 
