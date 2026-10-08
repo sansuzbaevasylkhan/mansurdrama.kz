@@ -12,7 +12,8 @@ import crypto from 'crypto';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.text();
-    const signature = headers().get('mux-signature');
+    const headerStore = await headers();
+    const signature = headerStore.get('mux-signature');
     const secret = process.env.MUX_WEBHOOK_SECRET;
 
     if (!secret) {
