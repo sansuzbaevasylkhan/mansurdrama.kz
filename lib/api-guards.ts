@@ -18,7 +18,7 @@ export async function requireAdmin(request?: NextRequest) {
     const auth = request.headers.get('authorization');
     if (auth?.startsWith('Bearer ')) {
       const session = await getSessionFromToken(auth.slice(7));
-      if (session && (session.role === 'ADMIN' || session.role === 'admin')) {
+      if (session && (session.role === 'ADMIN' || (session.role as string) === 'admin')) {
         return null;
       }
     }
@@ -28,7 +28,7 @@ export async function requireAdmin(request?: NextRequest) {
     const auth = head.get('authorization');
     if (auth?.startsWith('Bearer ')) {
       const session = await getSessionFromToken(auth.slice(7));
-      if (session && (session.role === 'ADMIN' || session.role === 'admin')) {
+      if (session && (session.role === 'ADMIN' || (session.role as string) === 'admin')) {
         return null;
       }
     }
@@ -36,7 +36,7 @@ export async function requireAdmin(request?: NextRequest) {
 
   // 2. Check cookies (regular session)
   const session = await getSession();
-  if (session && (session.role === 'ADMIN' || session.role === 'admin')) {
+  if (session && (session.role === 'ADMIN' || (session.role as string) === 'admin')) {
     return null;
   }
 
