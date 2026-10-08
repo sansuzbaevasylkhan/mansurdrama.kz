@@ -18,66 +18,127 @@ export async function POST(req: NextRequest) {
 
     if (!secret) {
       console.error('[Mux Webhook] MUX_WEBHOOK_SECRET is not configured');
-      return NextResponse.json({ error: 'Webhook secret not configured' }, { status: 500 });
+
+      return NextResponse.json(
+        { error: 'Webhook secret not configured' },
+        { status: 500 }
+      );
     }
 
     if (!signature) {
       console.error('[Mux Webhook] Missing mux-signature header');
-      return NextResponse.json({ error: 'Missing signature' }, { status: 400 });
+
+      return NextResponse.json(
+        { error: 'Missing signature' },
+        { status: 400 }
+      );
     }
 
-    // Validate signature to ensure request comes from Mux
+    // Validate signature to ensure the request comes from Mux
     const hmac = crypto.createHmac('sha256', secret);
     hmac.update(body);
+
     const digest = hmac.digest('hex');
 
     if (digest !== signature) {
       console.error('[Mux Webhook] Invalid signature');
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+
+      return NextResponse.json(
+        { error: 'Invalid signature' },
+        { status: 401 }
+      );
     }
 
     const event = JSON.parse(body);
-//    console.log('[Mux Webhook] Received event:', event.type);
+
+    console.log('[Mux Webhook] Received event:', event.type);
 
     switch (event.type) {
-      case 'video.asset.created':
-        // Asset was created. We can track the assetId if needed.
-        // In our current logic, we use playbackId for the player.
+      case 'video.asset.created': {
+        // Asset was created.
+        // We can track the assetId here if needed.
         break;
+      }
 
-      case 'video.asset.ready':
+      case 'video.asset.ready': {
         // Video is processed and ready for playback.
-        const { playbackId, id: assetId } = event.data;
+        const {
+          playback_id: playbackId,
+          id: assetId,
+        } = event.data;
 
-        // Find the episode that has this playbackId (or we might need to match via externalId)
-        // Since we save playbackId immediately after upload, we just update status.
-        await prisma.episode.updateMany({
-          where: { playbackId: playbackId },
-          data: {
-            // We can add a 'status' column to Episode model if it exists.
-            // For now, we ensure playbackId is set and can be used.
-          }
-        });
+        if (playbackId) {
+          await prisma.episode.updateMany({
+            where: {
+              playbackId,
+            },
+            data: {},
+          });
 
-        console.//Log for debugging
-        // console.log(`[Mux Webhook] Asset ${assetId} is now ready. PlaybackID: ${playbackId}`);
+          console.log(
+            `[Mux Webhook] Asset ${assetId} is now ready. PlaybackID: ${playbackId}`
+          );
+        } else {
+          console.log(
+            `[Mux Webhook] Asset ${assetId} is ready, but no playback_id was provided.`
+          );
+        }
+
         break;
+      }
 
-      case 'video.asset.deleted':
-        await prisma.episode.updateMany({
-          where: { playbackId: playbackId },
-          data: { videoUrl: null, playbackId: null }
-        });
-        break;
+      case 'video.asset.deleted': {
+        const {
+          playback_id: playbackId,
+          id: assetId,
+        } = event.data;
 
-      default:
-        // Ignore other events
+        if (playbackId) {
+          await prisma.episode.updateMany({
+            where: {
+              playbackId,
+            },
+            data: {
+              videoUrl: null,
+              playbackId: null,
+            },
+          });
+
+          console.log(
+            `[Mux Webhook] Asset ${assetId} deleted. PlaybackID: ${playbackId}`
+          );
+        } else {
+          console.log(
+            `[Mux Webhook] Asset ${assetId} deleted, but no playback_id was provided.`
+          );
+        }
+
         break;
+      }
+
+      default: {
+        // Ignore other Mux events
+        console.log(
+          `[Mux Webhook] Ignoring event: ${event.type}`
+        );
+
+        break;
+      }
     }
 
-    return NextResponse.json({ received: true }, { status: 200 });
+    return NextResponse.json(
+      { received: true },
+      { status: 200 }
+    );
   } catch (err) {
-    console.error('[Mux Webhook] Error processing webhook:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error(
+      '[Mux Webhook] Error processing webhook:',
+      err
+    );
+
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
