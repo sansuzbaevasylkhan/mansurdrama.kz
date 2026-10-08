@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
               playbackId,
             },
             data: {
-              videoUrl: null,
+              videoUrl: '',
               playbackId: null,
             },
           });
