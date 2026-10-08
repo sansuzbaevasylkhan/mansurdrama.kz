@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       name: parsed.data.name,
       email: parsed.data.email,
       role: parsed.data.role,
-      avatar: parsed.//data.avatar ?? null,
+      avatar: parsed.data.avatar ?? null,
       password,
     });
 
