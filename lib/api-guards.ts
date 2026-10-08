@@ -18,7 +18,7 @@ export async function requireAdmin(request?: NextRequest) {
     const auth = request.headers.get('authorization');
     if (auth?.startsWith('Bearer ')) {
       const session = await getSessionFromToken(auth.slice(7));
-      if (session && session.role === 'ADMIN') {
+      if (session && (session.role === 'ADMIN' || session.role === 'admin')) {
         return null;
       }
     }
@@ -28,7 +28,7 @@ export async function requireAdmin(request?: NextRequest) {
     const auth = head.get('authorization');
     if (auth?.startsWith('Bearer ')) {
       const session = await getSessionFromToken(auth.slice(7));
-      if (session && session.role === 'ADMIN') {
+      if (session && (session.role === 'ADMIN' || session.role === 'admin')) {
         return null;
       }
     }
