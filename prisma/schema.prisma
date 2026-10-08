@@ -1,12 +1,7 @@
-// Prisma schema for Mansur Drama streaming website
-// Production: PostgreSQL (Supabase / Neon / Vercel Postgres)
-// Local dev:  see prisma/schema.sqlite.prisma + `npm run dev`
-//
-// Supabase URL форматы:
-//   DATABASE_URL  = postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true
-//   DIRECT_URL    = postgresql://postgres:[password]@db.[ref].supabase.co:5432/postgres
-// (directUrl өшірілген — Supabase direct connection IPv6-мен ғана жұмыс істейді,
-// pooler URL (6543) — IPv4/IPv6-мен жұмыс істейді және db push үшін жеткілікті)
+// Local development schema (SQLite).
+// Copy this file to schema.prisma when working locally:
+//   cp prisma/schema.sqlite.prisma prisma/schema.prisma
+// Then run: npx prisma migrate dev
 
 generator client {
   provider = "prisma-client-js"
@@ -40,26 +35,15 @@ model Drama {
   @@index([isPublished])
 }
 
-enum PaymentType {
-  SINGLE_EPISODE
-  FULL_PACKAGE
-}
-
-enum PaymentStatus {
-  PENDING
-  APPROVED
-  REJECTED
-}
-
 model Episode {
   id            String   @id @default(cuid())
   episodeNumber Int
   title         String
-  videoUrl      String // ескі видеолар үшін fallback (Supabase Storage URL)
-  playbackId    String? // Mux playback ID — бар болса HLS осыдан ойнатылады
+  videoUrl      String
+  playbackId    String?
   muxAssetId    String?
   muxUploadId   String?
-  duration      Int      @default(0) // seconds
+  duration      Int      @default(0)
   thumbnail     String?
   views         Int      @default(0)
   createdAt     DateTime @default(now())
@@ -74,42 +58,6 @@ model Episode {
   @@index([dramaId])
 }
 
-model Payment {
-  id            String        @id @default(cuid())
-  userId        String
-  dramaId       String
-  type          PaymentType
-  episodeNumber Int?
-  receiptUrl    String
-  kaspiNumber   String
-  status        PaymentStatus @default(PENDING)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  drama Drama @relation(fields: [dramaId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([dramaId])
-  @@index([status])
-}
-
-model UnlockedContent {
-  id            String   @id @default(cuid())
-  userId        String
-  dramaId       String
-  episodeNumber Int?
-  createdAt     DateTime @default(now())
-
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  drama Drama @relation(fields: [dramaId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, dramaId, episodeNumber])
-  @@index([dramaId])
-}
-
-// Пайдаланушының қарау тарихы — "жалғастырып көру" (continue watching) үшін.
-// Тек логин болған қолданушыларға сақталады (мобиль: авторизация міндетті).
 model WatchHistory {
   id              String   @id @default(cuid())
   userId          String
@@ -137,14 +85,50 @@ model User {
   avatar    String?
   banner    String?
   password  String   @default("")
-  role      String   @default("USER") // USER or ADMIN
+  role      String   @default("USER")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  payments        Payment[]
+  payments       Payment[]
   unlockedContent UnlockedContent[]
   watchHistory    WatchHistory[]
 
   @@index([email])
   @@index([createdAt])
+}
+
+model Payment {
+  id            String   @id @default(cuid())
+  userId        String
+  dramaId       String
+  type          String   // SINGLE_EPISODE | FULL_PACKAGE
+  episodeNumber Int?
+  receiptUrl    String
+  kaspiNumber   String
+  status        String   @default("PENDING") // PENDING | APPROVED | REJECTED
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  drama Drama @relation(fields: [dramaId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([userId])
+  @@index([dramaId])
+  @@index([createdAt])
+}
+
+model UnlockedContent {
+  id            String   @id @default(cuid())
+  userId        String
+  dramaId       String
+  episodeNumber Int?     // null = FULL_PACKAGE (барлық эпизодтар ашық)
+  createdAt     DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  drama Drama @relation(fields: [dramaId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dramaId, episodeNumber])
+  @@index([userId])
+  @@index([dramaId])
 }
