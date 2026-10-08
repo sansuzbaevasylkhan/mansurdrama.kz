@@ -5,7 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import { View, Text, Platform } from "react-native";
 import * as Notifications from 'expo-notifications';
 import { registerForPushNotificationsAsync } from '@/lib/notifications';
-import {/lib/useNetwork';
+import { useNetwork } from '@/lib/useNetwork';
 import { NetworkStatusBar } from '@/components/ui/NetworkStatusBar';
 import * as NavigationBar from 'expo-navigation-bar';
 
@@ -68,12 +68,8 @@ export default function RootLayout() {
 
     // 2. Fullscreen Mode Configuration (Android)
     if (Platform.OS === 'android') {
-      // Hide the navigation bar (bottom buttons)
       NavigationBar.setBehaviorAsync('inset-touch');
       NavigationBar.setVisibilityAsync('hidden');
-
-      // Make sure it stays hidden unless user swipes from bottom
-      NavigationBar.setBehaviorAsync('inset-touch');
     }
   }, []);
 
@@ -81,7 +77,6 @@ export default function RootLayout() {
     <ErrorBoundary>
       <>
         <NetworkStatusBar isConnected={isConnected} />
-        {/* hidden prop hides the top status bar (time, battery) */}
         <StatusBar hidden={true} style="light" />
         <Stack
           screenOptions={{

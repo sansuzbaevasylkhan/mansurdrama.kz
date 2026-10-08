@@ -2,7 +2,7 @@
   "expo": {
     "name": "Mansur Drama",
     "slug": "mansurdrama-mobile",
-    "version": "1.2.2.1",
+    "version": "1.2.2.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "mansurdrama",
@@ -20,7 +20,7 @@
       "bundleIdentifier": "kz.asylkhansansuzbaev.mansurdrama.app"
     },
     "android": {
-      "versionCode": 8,
+      "versionCode": 10,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0a0a10"
@@ -28,7 +28,11 @@
       "package": "kz.asylkhansansuzbaev.mansurdrama.app",
       "permissions": [
         "INTERNET",
-        "ACCESS_NETWORK_STATE"
+        "ACCESS_NETWORK_STATE",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
       ]
     },
     "web": {
@@ -53,9 +57,9 @@
       "googleAndroidClientId": "",
       "googleIosClientId": "",
       "eas": {
-        "projectId": "5d56a1aa-eb90-4289-a4c9-117d75d93bbf"
+        "projectId": "3907d573-0c72-48af-ad39-7c21a7e97a71"
       }
     },
-    "owner": "sansuzbaev856ghjk"
+    "owner": "asylkhansansuzba454478645"
   }
 }
