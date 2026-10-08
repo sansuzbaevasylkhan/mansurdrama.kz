@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Valid file size is required' }, { status: 400 });
     }
     if (!mimeType || typeof mimeType !== 'string') {
-      return NextResponse.//json({ success: false, error: 'Valid MIME type is required' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Valid MIME type is required' }, { status: 400 });
     }
     if (!subdir || !ALLOWED_SUBDIRS.includes(subdir)) {
       return NextResponse.json(

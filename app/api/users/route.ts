@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
   } catch (err: any) {
     if (err?.code === 'P2002') {
-      return NextResponse.//json(
+      return NextResponse.json(
         { success: false, error: 'Бұл email бойынша қолданушы бар' },
         { status: 409 },
       );
