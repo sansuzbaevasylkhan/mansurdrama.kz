@@ -122,7 +122,7 @@ export default function Footer() {
 
             <motion.div variants={itemVariants} className="flex flex-wrap justify-center md:justify-end gap-4">
               <StoreButton store="apple" href="#" delay={0.1} />
-              <StoreButton store="google" href="#" delay={0.2} />
+              <StoreButton store="google" href="https://play.google.com/store/apps/dev?id=5736552730820975762" delay={0.2} />
             </motion.div>
           </div>
         </div>
