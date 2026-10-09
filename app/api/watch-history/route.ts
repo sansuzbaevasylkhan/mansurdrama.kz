@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   const userId = await resolveUserId(request);
   if (!userId) {
-    return NextResponse.json({ items: [] });
+    return NextResponse.json({ error: 'Сіз тіркелмегенсіз. Тарихты көру үшін тіркеліңіз.' }, { status: 401 });
   }
 
   const items = await getContinueWatching(userId);

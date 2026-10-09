@@ -8,6 +8,7 @@ import { registerForPushNotificationsAsync } from '@/lib/notifications';
 import { useNetwork } from '@/lib/useNetwork';
 import { NetworkStatusBar } from '@/components/ui/NetworkStatusBar';
 import * as NavigationBar from 'expo-navigation-bar';
+import * as ScreenCapture from 'expo-screen-capture';
 
 // Configure how notifications are handled when the app is foregrounded
 Notifications.setNotificationHandler({
@@ -57,7 +58,12 @@ export default function RootLayout() {
   const { isConnected } = useNetwork();
 
   useEffect(() => {
-    // 1. Push notifications registration
+    // 1. Prevent screenshots and screen recording
+    ScreenCapture.preventScreenCaptureAsync()
+      .then(() => console.log('Screenshots and recording prevented'))
+      .catch(err => console.error('Screen capture prevention error:', err));
+
+    // 2. Push notifications registration
     registerForPushNotificationsAsync()
       .then(token => {
         if (token) {
@@ -66,7 +72,7 @@ export default function RootLayout() {
       })
       .catch(err => console.error('Notification registration error:', err));
 
-    // 2. Fullscreen Mode Configuration (Android)
+    // 3. Fullscreen Mode Configuration (Android)
     if (Platform.OS === 'android') {
       NavigationBar.setBehaviorAsync('inset-touch');
       NavigationBar.setVisibilityAsync('hidden');
@@ -88,3 +94,4 @@ export default function RootLayout() {
     </ErrorBoundary>
   );
 }
+
