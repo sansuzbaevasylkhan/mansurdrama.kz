@@ -66,6 +66,41 @@ export default function ProfileScreen() {
     ]);
   };
 
+  const onDeleteAccount = () => {
+    Alert.alert(
+      "Аккаунтты жою",
+      "Шынымен аккаунтыңызды өшіргіңіз келе ме? Барлық деректеріңіз және ашылған серияларыңыз біржолғы жойылады. Бұл әрекетті кері қайтару мүмкін емес.",
+      [
+        { text: "Болдырмау", style: "cancel" },
+        {
+          text: "Өшіру",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/user/delete-account`, {
+                method: 'DELETE',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+              });
+
+              if (response.ok) {
+                Alert.alert("Сәтті аяяқталды", "Аккаунтыңыз сәтті жойылды.");
+                await logout();
+              } else {
+                const errData = await response.json();
+                Alert.alert("Қате", errData.message || "Аккаунтты жою мүмкін болмады.");
+              }
+            } catch (err) {
+              Alert.alert("Қате", "Сервермен байланыс үзілді.");
+            }
+          },
+        },
+      ]
+    );
+  };
+
+
   return (
     <SafeAreaView className="flex-1 bg-dark-950" edges={["top"]}>
       <ScrollView contentContainerClassName="px-4 pt-3 pb-24">
@@ -193,6 +228,16 @@ export default function ProfileScreen() {
           <LogOut size={16} color="#fda4af" />
           <Text className="text-sm font-semibold text-red-300">Шығу</Text>
         </Pressable>
+
+        {/* Delete Account */}
+        <Pressable
+          onPress={onDeleteAccount}
+          className="mt-3 h-12 rounded-2xl flex-row items-center justify-center gap-2 border border-red-900/30"
+          style={{ backgroundColor: "rgba(153, 27, 27, 0.10)" }}
+        >
+          <Text className="text-sm font-semibold text-red-500">Аккаунтты жою</Text>
+        </Pressable>
+
       </ScrollView>
     </SafeAreaView>
   );
