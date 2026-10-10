@@ -1,21 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[nextauth]/route';
+import { getSession } from '@/lib/auth';
+import { headers } from 'next/headers';
+import { getSessionFromToken } from '@/lib/auth';
 
 export async function DELETE(request: NextRequest) {
   try {
-    // 1. Сессияны тексеру
-    const session = await getServerSession(authOptions);
+    // 1. Сессияны тексеру (Жобаның өз авторизация жүйесі арқылы)
+    let userSession = await getSession();
 
-    if (!session || !session.user) {
+    // Егер cookie-де жоқ болса, Authorization header-ді тексеру (мобильді қосымшалар үшін)
+    if (!userSession) {
+      const authHeader = request.headers.get('authorization');
+      if (authHeader?.startsWith('Bearer ')) {
+        userSession = await getSessionFromToken(authHeader.slice(7));
+      }
+    }
+
+    if (!userSession || !userSession.user) {
       return NextResponse.json(
         { success: false, message: 'Сіз тіркелмегенсіз.' },
         { status: 401 }
       );
     }
 
-    const userEmail = session.user.email;
+    const userEmail = userSession.user.email;
 
     if (!userEmail) {
       return NextResponse.json(
@@ -38,8 +47,7 @@ export async function DELETE(request: NextRequest) {
 
     const userId = user.id;
 
-    // 3. Барлық байланысты деректерді өшіру (Cascade Delete Prisma-да баптағанбыз)
-    // Бірақ әлдеқайда сенімді болу үшін қолмен өшіреміз (егер CASCADE жұмыс істемесе)
+    // 3. Барлық байланысты деректерді өшіру
     await prisma.watchHistory.deleteMany({ where: { userId } });
     await prisma.payment.deleteMany({ where: { userId } });
     await prisma.unlockedContent.deleteMany({ where: { userId } });
