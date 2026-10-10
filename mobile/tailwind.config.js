@@ -16,16 +16,16 @@ module.exports = {
           700: "#2c2c2e",
         },
         primary: {
-          50: "#fdf2f8",
-          100: "#fce7f3",
-          400: "#f472b6",
-          500: "#ec4899",
-          600: "#db2777",
-        },
-        accent: {
+          50: "#f5f3ff",
+          100: "#ede9fe",
           400: "#a78bfa",
           500: "#8b5cf6",
           600: "#7c3aed",
+        },
+        accent: {
+          400: "#c084fc",
+          500: "#a855f7",
+          600: "#9333ea",
         },
       },
       fontFamily: {
@@ -35,3 +35,4 @@ module.exports = {
   },
   plugins: [],
 };
+
