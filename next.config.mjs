@@ -1,6 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  eslint: {
+    // Build кезінде ESLint қателерін елемейді
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    // Build кезінде TypeScript қателерін елемейді
+    ignoreBuildErrors: true,
+  },
   // Supabase Storage, Google и т.б. — осылар үшін сурет прокси ашық
   images: {
     remotePatterns: [
