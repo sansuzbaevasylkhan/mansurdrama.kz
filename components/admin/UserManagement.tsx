@@ -38,29 +38,42 @@ export function UserManagement() {
     setLoading(true);
     try {
       const res = await fetch('/api/users', { cache: 'no-store' });
+
+      if (res.status === 401) {
+        setUsers([]);
+        toast({ title: 'Қайта кіріңіз (сессия жоқ)', variant: 'destructive' });
+        window.location.href = '/admin/login';
+        return;
+      }
+
       if (!res.ok) throw new Error();
-      const data = (await res.json()) as UserSummary[];
-      setUsers(data);
+      const json = await res.json();
+      const list = Array.isArray(json) ? json : json?.data;
+      setUsers(Array.isArray(list) ? list : []);
     } catch {
+      setUsers([]);
       toast({ title: 'Қолданушыларды жүктеу мүмкін болмады', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
   }, [toast]);
 
+
   React.useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
 
   const filtered = React.useMemo(() => {
-    if (!search.trim()) return users;
+    const list = Array.isArray(users) ? users : [];
+    if (!search.trim()) return list;
     const q = search.toLowerCase();
-    return users.filter(
+    return list.filter(
       (u) =>
         u.name.toLowerCase().includes(q) ||
         u.email.toLowerCase().includes(q),
     );
   }, [users, search]);
+
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const pageItems = filtered.slice((page - 1) * pageSize, page * pageSize);

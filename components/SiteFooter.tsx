@@ -41,7 +41,6 @@ function YoutubeIcon({ className }: { className?: string }) {
 }
 
 function TiktokIcon({ className }: { className?: string }) {
-  // TikTok фирмалық логотипі — дұрыс нышан түпнұсқа ресми гайдқа сәйкес
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -75,10 +74,39 @@ const socialLinks = [
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-white/5 mt-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 flex flex-col gap-6">
-        {/* Жоғарғы қатар: copyright + әлеуметтік желілер */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+    <footer className="border-t border-white/5 mt-16 bg-black select-none">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 flex flex-col gap-10">
+
+
+        {/* Store Buttons Section - Premium Ultra Max Style */}
+        <div className="flex flex-col items-center gap-6">
+          <div className="text-center">
+            <h3 className="text-lg font-bold text-white mb-1">プレミアム・ウルトラ・マックス</h3>
+            <p className="text-sm text-white/40">Қосымшаны жүктеп алып, мүмкіндіктерді кеңейтіңіз</p>
+          </div>
+
+          <div className="flex flex-wrap justify-center gap-4">
+            <span
+              className="flex items-center gap-3 px-5 py-2.5 rounded-xl bg-white/5 text-white/30 font-bold text-sm cursor-not-allowed opacity-50"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 384 512" fill="currentColor"><path d="M318.7 268.7c-.2-36.3 16.4-64.2 50-64.2 14.2-14.2 28.4-14.2 38.8-14.2 10.6 0 17.6-12.6 28.4-12.6 11.2 0 17.2 12.2 28 12.2 11.2 0 24.5-15.7 44.7-15.7 18.3 0 34.3 12.6 44.7 28.4-15.6 36.7-12.1 66.9-12.1 66.9-16.7 2.7-36.3 12.5-49 12.5-12.8 0-25.3-12.5-34.3-12.5s-21.5 12.5-34.3 12.5c-12.8 0-25.7-12.5-34.3-12.5-12.6 0-24.5 12.5-34.3 12.5-12.8 0-25.3-12.5-34.3-12.5-12.8 0-24.5 12.5-34.3 12.5-12.8 0-25.7-12.5-34.3-12.5-12.8 0-24.5 12.5-34.3 12.5-12.8 0-25.7-12.5-34.3-12.5z"/></svg>
+              App Store
+            </span>
+            <a
+              href="https://play.google.com/store/apps/details?id=kz.asylkhansansuzbaev.mansurdrama.app&hl=en-US&ah=kuAa_NLwNKTaK3bT_9sZ9TYojxY"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-500 text-white font-bold text-sm transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(79,70,229,0.5)] active:scale-95"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M3,20A1,1 0 0,1 2,19V5A1,1 0 0,1 3,4H21A1,1 0 0,1 22,5V19A1,1 0 0,1 21,20H3M3,5V19H21V5H3M13.5,12.5L16,15L18.5,12.5L13.5,12.5Z"/></svg>
+              Google Play
+            </a>
+
+          </div>
+        </div>
+
+        {/* Bottom row: Copyright + Socials */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-white/5 pt-8">
           <p className="text-sm text-white/50">
             © {new Date().getFullYear()} MansurDrama.kz — Барлық құқықтар қорғалған.
           </p>
@@ -100,8 +128,8 @@ export function SiteFooter() {
           </div>
         </div>
 
-        {/* Төменгі қатар: сілтемелер */}
-        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-white/50 border-t border-white/5 pt-6">
+        {/* Footer Links */}
+        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-white/40 border-t border-white/5 pt-6">
           <Link href="/terms" className="hover:text-white transition-colors">
             Пайдалану шарттары
           </Link>
@@ -111,7 +139,7 @@ export function SiteFooter() {
           </Link>
           <span className="text-white/15">•</span>
           <a
-            href="mailto:support@mansurdrama.kz"
+            href="mailto:asylkhansansuzbaev73@gmail.com"
             className="hover:text-white transition-colors"
           >
             Қолдау

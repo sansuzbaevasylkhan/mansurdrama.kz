@@ -37,9 +37,10 @@ export default function HomePage() {
           : '/api/dramas';
         const res = await fetch(url, { cache: 'no-store' });
         if (!res.ok) throw new Error('Дорамаларды жүктеу мүмкін болмады');
-        const data = (await res.json()) as DramaListItem[];
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : data?.data;
         if (!cancelled) {
-          setDramas(data);
+          setDramas(Array.isArray(list) ? list : []);
           setError(null);
         }
       } catch (err: any) {

@@ -47,14 +47,17 @@ export function UsersManager() {
     try {
       const res = await fetch("/api/users");
       if (!res.ok) throw new Error();
-      const data = await res.json();
-      setUsers(data);
+      const json = await res.json();
+      const list = Array.isArray(json) ? json : json?.data;
+      setUsers(Array.isArray(list) ? list : []);
     } catch {
       toast({ title: "Қолданушыларды жүктеу мүмкін болмады", variant: "destructive" });
+      setUsers([]);
     } finally {
       setLoading(false);
     }
   };
+
 
   useEffect(() => {
     load();

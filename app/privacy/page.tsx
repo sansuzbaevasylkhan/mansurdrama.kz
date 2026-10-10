@@ -83,10 +83,11 @@ const sections = [
     content: [
       'Деректеріңізді көру, жүктеп алу (export).',
       'Қате деректерді түзету.',
-      'Тиркелкіні жою — support@mansurdrama.kz поштасына өтініш жолдаңыз.',
+      <>Тиркелкіні жою — <a href="mailto:asylkhansansuzbaev73@gmail.com" className="text-primary-500 hover:underline">asylkhansansuzbaev73@gmail.com</a> поштасына өтініш жолдаңыз.</>,
       'Маркетинг хабарламаларынан бас тарту.',
     ],
   },
+
   {
     id: 'security',
     title: '9. Қауіпсіздік шаралары',
@@ -118,10 +119,12 @@ const sections = [
     id: 'contact',
     title: '12. Байланыс',
     content: [
-      'Құпиялық мәселелері бойынша: support@mansurdrama.kz',
+      <>Құпиялық мәселелері бойынша: <a href="mailto:asylkhansuzbaev73@gmail.com" className="text-primary-500 hover:underline">asylkhansansuzbaev73@gmail.com</a></>,
       'Жауап мерзімі: жұмыс күндері 24 сағат ішінде.',
     ],
   },
+
+
 ];
 
 export default function PrivacyPage() {

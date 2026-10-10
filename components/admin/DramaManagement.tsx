@@ -67,30 +67,44 @@ export function DramaManagement() {
         cache: 'no-store',
         credentials: 'include'
       });
+
+      if (res.status === 401) {
+        setDramas([]);
+        toast({ title: 'Қайта кіріңіз (сессия жоқ)', variant: 'destructive' });
+        window.location.href = '/admin/login';
+        return;
+      }
+
       if (!res.ok) throw new Error();
-      const data = (await res.json()) as DramaWithEpisodes[];
-      setDramas(data);
+
+      const json = await res.json();
+      const list = Array.isArray(json) ? json : json?.data;
+      setDramas(Array.isArray(list) ? list : []);
     } catch (err) {
+      setDramas([]);
       toast({ title: 'Дорамаларды жүктеу мүмкін болмады', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
   }, [toast]);
 
+
   React.useEffect(() => {
     fetchDramas();
   }, [fetchDramas]);
 
   const filtered = React.useMemo(() => {
-    if (!search.trim()) return dramas;
+    const list = Array.isArray(dramas) ? dramas : [];
+    if (!search.trim()) return list;
     const q = search.toLowerCase();
-    return dramas.filter(
+    return list.filter(
       (d) =>
         d.title.toLowerCase().includes(q) ||
         d.slug.toLowerCase().includes(q) ||
         d.description?.toLowerCase().includes(q),
     );
   }, [dramas, search]);
+
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const pageItems = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -613,7 +627,11 @@ function DramaFormDialog({
           throw new Error(data.error || 'Дораманы сақтау мүмкін болмады');
         }
         const data = await res.json();
-        dramaId = data.id;
+        const dramaIdValue = data?.data?.id ?? data?.id;
+        if (!dramaIdValue) throw new Error('Дорама ID алынбады');
+        dramaId = dramaIdValue;
+
+
       }
 
       // Step 2: upload any pending episode videos.

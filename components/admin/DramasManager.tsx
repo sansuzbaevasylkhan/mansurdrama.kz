@@ -72,14 +72,17 @@ export function DramasManager() {
     try {
       const res = await fetch("/api/dramas?admin=1");
       if (!res.ok) throw new Error();
-      const data = await res.json();
-      setDramas(data);
+      const json = await res.json();
+      const list = Array.isArray(json) ? json : json?.data;
+      setDramas(Array.isArray(list) ? list : []);
     } catch {
       toast({ title: "Дорамаларды жүктеу мүмкін болмады", variant: "destructive" });
+      setDramas([]);
     } finally {
       setLoading(false);
     }
   };
+
 
   useEffect(() => {
     load();

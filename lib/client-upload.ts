@@ -25,9 +25,16 @@ export async function uploadFileDirect(
       subdir,
     }),
   });
-  const ticket = await ticketRes.json();
+
+  const json = await ticketRes.json();
+  const ticket = json?.data ?? json;
+
   if (!ticketRes.ok) {
-    throw new Error(ticket?.error || 'Жүктеу үшін рұқсат алу мүмкін болмады');
+    throw new Error(json?.error || ticket?.error || 'Жүктеу үшін рұқсат алу мүмкін болмады');
+  }
+
+  if (!ticket?.signedUrl) {
+    throw new Error('Жүктеу URL-і алынбады');
   }
 
   // 2) Файлды тікелей Supabase Storage-қа жіберу (XHR — progress үшін).
@@ -37,6 +44,7 @@ export async function uploadFileDirect(
   await new Promise<void>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('PUT', ticket.signedUrl);
+
     xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
     xhr.setRequestHeader('cache-control', 'max-age=31536000');
     xhr.upload.onprogress = (e) => {
@@ -54,7 +62,8 @@ export async function uploadFileDirect(
     xhr.send(file);
   });
 
-  return ticket.publicUrl as string;
+  return (ticket.publicUrl || ticket?.data?.publicUrl) as string;
+
 }
 
 export interface MuxUploadResult {
