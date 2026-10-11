@@ -9,6 +9,7 @@ import { UserManagement } from '@/components/admin/UserManagement';
 import { Payments } from '@/components/admin/Payments';
 import { TariffManagement } from '@/components/admin/TariffManagement';
 import { ToastProvider } from '@/components/ui/toast';
+import { Loader2 } from 'lucide-react';
 
 type Tab = 'dashboard' | 'dramas' | 'users' | 'payments' | 'tariffs';
 
@@ -59,15 +60,21 @@ function DashboardInner() {
             transition={{ duration: 0.25 }}
           >
             {tab === 'dashboard' ? (
-              <DashboardHome
-                onOpenDramas={() => setTab('dramas')}
-                onOpenUsers={() => setTab('users')}
-                dramaCount={stats?.totalDramas || 0}
-                userCount={stats?.totalUsers || 0}
-                totalRevenue={stats?.totalRevenue || 0}
-                pendingPayments={stats?.pendingPayments || 0}
-                activeTariffs={stats?.activeTariffs || 0}
-              />
+              loading ? (
+                <div className="flex items-center justify-center h-full py-20">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
+                </div>
+              ) : (
+                <DashboardHome
+                  onOpenDramas={() => setTab('dramas')}
+                  onOpenUsers={() => setTab('users')}
+                  dramaCount={stats?.totalDramas || 0}
+                  userCount={stats?.totalUsers || 0}
+                  totalRevenue={stats?.totalRevenue || 0}
+                  pendingPayments={stats?.pendingPayments || 0}
+                  activeTariffs={stats?.activeTariffs || 0}
+                />
+              )
             ) : tab === 'dramas' ? (
               <DramaManagement />
             ) : tab === 'payments' ? (
@@ -76,6 +83,8 @@ function DashboardInner() {
               </div>
             ) : tab === 'tariffs' ? (
               <TariffManagement />
+            ) : tab === 'users' ? (
+              <UserManagement />
             ) : (
               <UserManagement />
             )}
