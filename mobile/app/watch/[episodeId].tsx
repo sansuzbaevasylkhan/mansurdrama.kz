@@ -231,7 +231,7 @@ export default function WatchScreen() {
                 player.muted = !muted;
               }} className="p-1.5">
                 {muted ? <VolumeX size={18} color="#fff" /> : <Volume2 size={18} color="#fff" />}
-              }
+              </Pressable>
               <Text className="text-xs text-white/70">
                 {formatDuration(player.currentTime)} /{" "}
                 {formatDuration(player.duration)}

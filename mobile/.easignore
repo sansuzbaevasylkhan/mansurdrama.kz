@@ -1,0 +1,94 @@
+# EAS Build Ignore File
+# This file tells EAS which files to exclude when uploading the project tarball.
+# It uses the same format as .gitignore.
+
+# --- CRITICAL: Fix EPERM Symlink Error ---
+# The error occurs because EAS tries to upload symlinks from the root directory.
+# We must explicitly ignore all hidden directories and specific tool folders.
+
+# Ignore all hidden directories in root and subdirectories
+**/.*
+!/.gitignore
+!/.easignore
+
+# Specific directories causing the EPERM error
+.agents/
+.claude/
+.adal/
+.aider-desk/
+.augment/
+.autohand/
+.bob/
+.codeartsdoer/
+.codebuddy/
+.codemaker/
+.codestudio/
+.commandcode/
+.continue/
+.cortex/
+.crush/
+.devin/
+.easignore
+.expo/
+.forge/
+.fx/
+.git/
+.goose/
+.grok/
+.hermes/
+.iflow/
+.inferencesh
+.jazz/
+.junie/
+.kimchi/
+.kiro/
+.kode/
+.lingma/
+.mcpjam/
+.minimax/
+.moxby/
+.mux/
+.neovate/
+.next/
+.ona/
+.openhands/
+.pochi/
+.posit/
+.qoder/
+.qwen/
+.reasonix/
+.roo/
+.rovodev/
+.tabnine/
+.terramind/
+.tinycloud/
+.trae/
+.vercel/
+.vibe/
+.windsurf/
+.zcode/
+.zencoder
+
+# Dependency and build folders
+node_modules/
+dist/
+build-output/
+.expo/
+# Ignore local environment files
+.env*
+
+# Ignore local OS files
+Thumbs.db
+.DS_Store
+
+# Ignore specific tool folders (skills, etc)
+skills/
+supabase/
+prisma/
+uploads/
+data/
+scripts/
+utils/
+src/
+styles/
+public/
