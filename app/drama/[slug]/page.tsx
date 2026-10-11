@@ -3,10 +3,10 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Film, Star, Eye } from 'lucide-react';
 import { getDramaBySlug, getDramasBySearch } from '@/lib/db';
-import { VideoPlayer } from '@/components/VideoPlayer';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 import { DramaCard } from '@/components/DramaCard';
+import { DramaClientWrapper } from '@/components/DramaClientWrapper';
 import { getSiteUrl, formatNumber } from '@/lib/utils';
 import type { DramaListItem } from './_types';
 
@@ -115,39 +115,7 @@ export default async function DramaPage({ params }: PageProps) {
         </div>
       </section>
 
-      {/* Episodes */}
-      <section className="max-w-7xl w-full mx-auto px-4 sm:px-6 py-10">
-        <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight mb-4">
-          Бөлімдер
-        </h2>
-        {drama.episodes.length === 0 ? (
-          <p className="text-white/60 text-sm">Әлі бөлімдер қосылмаған.</p>
-        ) : (
-          <div className="space-y-3 sm:space-y-4">
-            {drama.episodes.map((ep) => (
-              <div
-                key={ep.id}
-                className="rounded-2xl border border-white/10 bg-white/[0.02] p-3 sm:p-4"
-              >
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500/30 to-accent-500/30 text-sm font-bold text-white">
-                    {ep.episodeNumber}
-                  </div>
-                  <h3 className="text-sm sm:text-base font-semibold text-white">
-                    {ep.title}
-                  </h3>
-                </div>
-                <VideoPlayer
-                  videoUrl={ep.videoUrl}
-                  playbackId={ep.playbackId}
-                  posterUrl={drama.posterUrl}
-                  title={`${drama.title} — ${ep.title}`}
-                />
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+      <DramaClientWrapper drama={drama} />
 
       {related.length > 0 ? (
         <section className="max-w-7xl w-full mx-auto px-4 sm:px-6 pb-12">
