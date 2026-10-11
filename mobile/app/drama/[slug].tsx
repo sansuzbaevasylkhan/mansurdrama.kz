@@ -1,13 +1,14 @@
-import { View, Text, ScrollView, ActivityIndicator, Pressable } from "react-native";
+import { View, Text, ScrollView, ActivityIndicator, Pressable, Alert } from "react-native";
 import { useLocalSearchParams, Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
-import { ArrowLeft, Star, Eye, Film, Play } from "lucide-react-native";
+import { ArrowLeft, Star, Eye, Film, Play, LayoutGrid } from "lucide-react-native";
 import { dramasApi } from "@/lib/endpoints";
 import type { Drama, Episode } from "@/lib/types";
 import { formatNumber } from "@/lib/utils";
 import { EpisodePaywall } from "@/components/EpisodePaywall";
+import { EpisodeSheet } from "@/components/EpisodeSheet";
 import { useUser } from "@/lib/user-store";
 
 export default function DramaPage() {
@@ -19,6 +20,7 @@ export default function DramaPage() {
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [loading, setLoading] = useState(true);
   const [unlocked, setUnlocked] = useState<Set<number>>(new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]));
+  const [isSheetVisible, setIsSheetVisible] = useState(false);
 
   useEffect(() => {
     if (!slug) return;
@@ -33,7 +35,6 @@ export default function DramaPage() {
         const eps = await dramasApi.episodes(d.id);
         setEpisodes(eps);
 
-        // Егер user кірген болса, бұрыннан ашылған эпизодтарды тексереміз
         if (user) {
           const checks = await Promise.all(
             eps
@@ -77,6 +78,31 @@ export default function DramaPage() {
     );
   }
 
+  const handleSelectEpisode = (num: number) => {
+    const ep = episodes.find((e) => e.episodeNumber === num);
+    if (!ep) return;
+
+    setIsSheetVisible(false);
+
+    const isLocked = ep.episodeNumber > 10 && !unlocked.has(ep.episodeNumber);
+    if (isLocked) {
+      Alert.alert("Қолжетімсіз", "Бұл бөлімді көру үшін төлем жасау қажет. Төменгі тізімнен төлемді жіберіңіз.");
+      return;
+    }
+
+    router.push({
+      pathname: "/watch/[episodeId]",
+      params: {
+        episodeId: ep.id,
+        dramaId: drama.id,
+        videoUrl: ep.videoUrl,
+        posterUrl: drama.posterUrl,
+        title: drama.title,
+        subtitle: ep.title,
+      },
+    });
+  };
+
   return (
     <View className="flex-1 bg-dark-950">
       <Stack.Screen options={{ headerShown: false }} />
@@ -112,13 +138,13 @@ export default function DramaPage() {
               </Badge>
               {drama.rating > 0 ? (
                 <Badge icon={<Star size={12} color="#facc15" fill="#facc15" />}>
-                  {drama.rating.toFixed(1)}
-                </Badge>
+                {drama.rating.toFixed(1)}
+              </Badge>
               ) : null}
               {drama.views > 0 ? (
                 <Badge icon={<Eye size={12} color="#fff" />}>
-                  {formatNumber(drama.views)}
-                </Badge>
+                {formatNumber(drama.views)}
+              </Badge>
               ) : null}
             </View>
             {drama.description ? (
@@ -128,7 +154,16 @@ export default function DramaPage() {
         </View>
 
         <View className="mt-6 px-4">
-          <Text className="text-lg font-bold text-white mb-3">Бөлімдер</Text>
+          <View className="flex-row items-center justify-between mb-3">
+            <Text className="text-lg font-bold text-white">Бөлімдер</Text>
+            <Pressable
+              onPress={() => setIsSheetVisible(true)}
+              className="flex-row items-center gap-2 px-3 py-1 rounded-full bg-white/10"
+            >
+              <LayoutGrid size={14} color="#fff" />
+              <Text className="text-xs font-semibold text-white">Тізім</Text>
+            </Pressable>
+          </View>
           {episodes.length === 0 ? (
             <Text className="text-white/60 text-sm">Әлі бөлімдер қосылмаған.</Text>
           ) : (
@@ -190,6 +225,15 @@ export default function DramaPage() {
           )}
         </View>
       </ScrollView>
+
+      <EpisodeSheet
+        isVisible={isSheetVisible}
+        title={drama.title}
+        poster={drama.posterUrl}
+        totalEpisodes={drama.totalEpisodes}
+        onClose={() => setIsSheetVisible(false)}
+        onSelect={handleSelectEpisode}
+      />
     </View>
   );
 }
