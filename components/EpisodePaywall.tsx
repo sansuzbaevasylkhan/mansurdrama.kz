@@ -1,166 +1,185 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { Lock, Loader2, Upload, CheckCircle2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/components/ui/toast';
+import { Card } from '@/components/ui/card';
+import { toast } from 'sonner';
+import { FileText, CreditCard, AlertCircle } from 'lucide-react';
 
-const KASPI_NUMBER = '+7 776 010 9510';
-
-
-export function EpisodePaywall({
-  dramaId,
-  episodeNumber,
-  lockedTitle,
-}: {
+interface EpisodePaywallProps {
   dramaId: string;
-  episodeNumber: number;
-  lockedTitle?: string;
-}) {
-  const { toast } = useToast();
-  const [email, setEmail] = React.useState('');
+  userId: string;
+  currentEpisode: number;
+  freeEpisodesCount: number;
+  onClose?: () => void;
+}
 
-  const [receipt, setReceipt] = React.useState<File | null>(null);
-  const [loading, setLoading] = React.useState(false);
-  const [sent, setSent] = React.useState(false);
+export default function EpisodePaywall({ dramaId, userId, currentEpisode, freeEpisodesCount, onClose }: EpisodePaywallProps) {
+  const [tariffs, setTariffs] = useState([]);
+  const [selectedTariff, setSelectedTariff] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [hasStartedPayment, setHasStartedPayment] = useState(false);
+  const [receiptFile, setReceiptFile] = useState(null);
 
-  const singlePrice = 1500;
-  const fullPrice = 3000;
+  useEffect(() => {
+    fetchTariffs();
+  }, []);
 
-  async function submit(type: 'SINGLE_EPISODE' | 'FULL_PACKAGE') {
-    if (!email) {
-      toast({ title: 'Қате', description: 'Email енгізіңіз', variant: 'warning' });
-
-      return;
-    }
-    if (!receipt) {
-      toast({ title: 'Қате', description: 'Чек файлын таңдаңыз', variant: 'warning' });
-
-      return;
-    }
-
-    setLoading(true);
+  async function fetchTariffs() {
     try {
-      const fd = new FormData();
-      fd.set('email', email);
-      fd.set('dramaId', dramaId);
-      fd.set('type', type);
-      if (type === 'SINGLE_EPISODE') {
-        fd.set('episodeNumber', String(episodeNumber));
-      }
-      fd.set('receipt', receipt);
-
-      const res = await fetch('/api/payments', {
-        method: 'POST',
-        body: fd,
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data?.error || 'Төлемді жіберу мүмкін болмады');
-      }
-
-      setSent(true);
-      toast({ title: 'Төлем жіберілді', description: 'Әкімші тексеріп, ашады', variant: 'success' });
-
-    } catch (e: any) {
-      toast({ title: 'Қате', description: e?.message || 'Қате', variant: 'destructive' });
-
-    } finally {
-      setLoading(false);
+      const res = await fetch('/api/tariffs');
+      const data = await res.json();
+      setTariffs(Array.isArray(data) ? data : []);
+    } catch (error) {
+      toast.error('Тарифтерді жүктеу кезінде қате кетті');
     }
   }
 
+  async function handleUploadReceipt() {
+    if (!receiptFile || !selectedTariff) {
+      toast.error('Тарифті таңдап, PDF чекті жүктеңіз');
+      return;
+    }
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('userId', userId);
+    formData.append('dramaId', dramaId);
+    formData.append('tariffId', selectedTariff.id);
+    formData.append('type', selectedTariff.name.toLowerCase().includes('толық') ? 'FULL_PACKAGE' : 'SINGLE_EPISODE');
+    formData.append('episodeNumber', currentEpisode.toString());
+    formData.append('receipt', receiptFile);
+    formData.append('email', 'user@example.com'); // This should come from auth context
+
+    try {
+      const res = await fetch('/api/payments', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (res.ok) {
+        toast.success('Чек сәтті жіберілді! Админ растаған соң сериялар ашылады');
+        setHasStartedPayment(false);
+        setSelectedTariff(null);
+        setReceiptFile(null);
+      } else {
+        const errorData = await res.json();
+        toast.error(errorData.error || 'Қате кетті');
+      }
+    } catch (error) {
+      toast.error('Сервермен байланыс үзілді');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  if (currentEpisode <= freeEpisodesCount) return null;
+
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/30 p-4 sm:p-5">
-      <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-500/15 text-rose-200">
-          <Lock className="h-5 w-5" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+      <Card className="bg-white text-black w-full max-w-lg overflow-hidden rounded-2xl shadow-2xl">
+        {/* Header */}
+        <div className="bg-red-600 p-6 text-white text-center">
+          <h2 className="text-2xl font-bold">Серияны ашу</h2>
+          <p className="text-sm opacity-90 mt-1">Бұл серияны көру үшін тарифті таңдаңыз</p>
         </div>
-        <div className="min-w-0 flex-1">
-          <h3 className="text-sm sm:text-base font-semibold text-white">
-            {lockedTitle ? `Құлыпталған: ${lockedTitle}` : 'Құлыпталған бөлім'}
-          </h3>
-          <p className="mt-1 text-xs sm:text-sm text-white/60">
-            1-10 серия тегін. 11+ үшін қолмен төлем қажет.
-          </p>
 
-          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-              <p className="text-xs text-white/60">1 серия</p>
-              <p className="text-lg font-bold text-white">{singlePrice} ₸</p>
-              <Button
-                className="mt-2 w-full"
-                size="sm"
-                onClick={() => submit('SINGLE_EPISODE')}
-                disabled={loading || sent}
-              >
-                {sent ? <CheckCircle2 className="h-4 w-4" /> : 'Төлеу'}
-              </Button>
+        <div className="p-6 space-y-6">
+          {/* Warning Message */}
+          {!hasStartedPayment && (
+            <div className="flex items-start gap-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800 text-sm">
+              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+              <p>Сіз әлі төлемей жатыр екенсіз. Келесі серияны қарау үшін төлем жасаңыз.</p>
             </div>
-            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-              <p className="text-xs text-white/60">Толық пакет</p>
-              <p className="text-lg font-bold text-white">{fullPrice} ₸</p>
-              <Button
-                className="mt-2 w-full"
-                size="sm"
-                onClick={() => submit('FULL_PACKAGE')}
-                disabled={loading || sent}
-              >
-                {sent ? <CheckCircle2 className="h-4 w-4" /> : 'Төлеу'}
-              </Button>
-            </div>
-          </div>
+          )}
 
-          <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.02] p-3">
-            <p className="text-xs text-white/60">Kaspi</p>
-            <p className="mt-1 text-sm font-semibold tabular-nums text-white">{KASPI_NUMBER}</p>
-          </div>
-
-          <div className="mt-4 space-y-3">
-            <div>
-              <Label htmlFor="email">Email (әкімшіге байланыс)</Label>
-              <Input
-                id="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                type="email"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="receipt">Чек скриншоты/файлы</Label>
-              <div className="mt-2 flex items-center gap-3">
-                <label
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white/70 hover:text-white cursor-pointer"
-                  htmlFor="receipt"
-                >
-                  <Upload className="h-4 w-4" />
-                  {receipt ? receipt.name : 'Файл таңдаңыз'}
-                </label>
-                <Input
-                  id="receipt"
-                  type="file"
-                  className="hidden"
-                  accept="image/*,application/pdf"
-                  onChange={(e) => setReceipt(e.target.files?.[0] || null)}
-                />
+          {/* Tariff Selection */}
+          {!hasStartedPayment ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 gap-3">
+                {tariffs.map((tariff: any) => (
+                  <div
+                    key={tariff.id}
+                    onClick={() => {
+                      setSelectedTariff(tariff);
+                      setHasStartedPayment(true);
+                    }}
+                    className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                      selectedTariff?.id === tariff.id ? 'border-red-600 bg-red-50' : 'border-gray-200 hover:border-red-300'
+                    }`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-bold text-lg">{tariff.name}</p>
+                        <p className="text-sm text-gray-500">{tariff.description}</p>
+                      </div>
+                      <p className="text-xl font-black text-red-600">{tariff.price} ₸</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+              {/* Payment Details */}
+              <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 text-center space-y-3">
+                <p className="text-sm text-gray-600">Төлем жасау үшін нөмір:</p>
+                <p className="text-2xl font-mono font-bold text-black">+7 776 010 9510</p>
 
-          {loading ? (
-            <div className="mt-3 flex items-center gap-2 text-xs text-white/60">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Жіберілуде…
+                {/* Kaspi Red Button */}
+                <a
+                  href="https://kaspi.kz/pay?phone=+77760109510" // Example link
+                  target="_blank"
+                  className="flex items-center justify-center gap-2 w-full py-4 bg-[#E30613] text-white rounded-xl font-bold text-lg hover:bg-red-700 transition-colors shadow-lg"
+                >
+                  <CreditCard className="w-6 h-6" />
+                  Kaspi арқылы төлеу
+                </a>
+              </div>
+
+              {/* PDF Upload Section */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                  <FileText className="w-4 h-4" />
+                  <span>Төлем чегін жүктеңіз (PDF)</span>
+                </div>
+
+                <div className="relative border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-red-400 transition-colors">
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    onChange={(e) => setReceiptFile(e.target.files?.[0])}
+                  />
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-500">
+                      {receiptFile ? `Файл: ${receiptFile.name}` : 'PDF файлын таңдаңыз немесе сүйреп әкеліңіз'}
+                    </p>
+                    {!receiptFile && <p className="text-xs text-gray-400">Тек PDF форматы қабылданады</p>}
+                  </div>
+                </div>
+
+                <Button
+                  onClick={handleUploadReceipt}
+                  disabled={uploading || !receiptFile}
+                  className="w-full py-6 text-lg font-bold bg-black text-white hover:bg-gray-800"
+                >
+                  {uploading ? 'Жіберілуде...' : 'Төлемді растау'}
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  onClick={() => setHasStartedPayment(false)}
+                  className="w-full text-gray-500"
+                >
+                  Тарифті өзгерту
+                </Button>
+              </div>
             </div>
-          ) : null}
+          )}
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
-

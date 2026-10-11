@@ -14,17 +14,18 @@ datasource db {
 }
 
 model Drama {
-  id            String    @id @default(cuid())
-  title         String
-  slug          String    @unique
-  description   String?
-  posterUrl     String
-  totalEpisodes Int       @default(0)
-  views         Int       @default(0)
-  rating        Float     @default(0)
-  isPublished   Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                String    @id @default(cuid())
+  title             String
+  slug              String    @unique
+  description       String?
+  posterUrl         String
+  totalEpisodes     Int       @default(0)
+  freeEpisodesCount Int       @default(0) // Тегін көрсетілетін сериялар саны
+  views             Int       @default(0)
+  rating            Float     @default(0)
+  isPublished       Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   episodes        Episode[]
   payments        Payment[]
@@ -98,20 +99,34 @@ model User {
   @@index([createdAt])
 }
 
+model Tariff {
+  id          String   @id @default(cuid())
+  name        String   // Мысалы: "Келесі серияны ашу" немесе "Толық пакет"
+  price       Float
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  payments Payment[]
+}
+
 model Payment {
   id            String   @id @default(cuid())
   userId        String
   dramaId       String
+  tariffId      String   // Қай тариф таңдалды
   type          String   // SINGLE_EPISODE | FULL_PACKAGE
   episodeNumber Int?
-  receiptUrl    String
+  receiptPdfUrl String   // PDF чек сілтемесі
   kaspiNumber   String
   status        String   @default("PENDING") // PENDING | APPROVED | REJECTED
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  drama Drama @relation(fields: [dramaId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  drama  Drama  @relation(fields: [dramaId], references: [id], onDelete: Cascade)
+  tariff Tariff @relation(fields: [tariffId], references: [id])
 
   @@index([status])
   @@index([userId])

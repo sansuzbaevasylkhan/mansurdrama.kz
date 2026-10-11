@@ -59,23 +59,39 @@ export default function RootLayout() {
 
   useEffect(() => {
     // 1. Prevent screenshots and screen recording
-    ScreenCapture.preventScreenCaptureAsync()
-      .then(() => console.log('Screenshots and recording prevented'))
-      .catch(err => console.error('Screen capture prevention error:', err));
+    try {
+      if (typeof ScreenCapture !== 'undefined' && typeof ScreenCapture.preventScreenCaptureAsync === 'function') {
+        ScreenCapture.preventScreenCaptureAsync()
+          .then(() => console.log('Screenshots and recording prevented'))
+          .catch(err => console.error('Screen capture prevention error:', err));
+      }
+    } catch (e) {
+      console.error('Critical error in ScreenCapture: ', e);
+    }
 
     // 2. Push notifications registration
-    registerForPushNotificationsAsync()
-      .then(token => {
-        if (token) {
-          console.log('Expo Push Token:', token);
-        }
-      })
-      .catch(err => console.error('Notification registration error:', err));
+    try {
+      registerForPushNotificationsAsync()
+        .then(token => {
+          if (token) {
+            console.log('Expo Push Token:', token);
+          }
+        })
+        .catch(err => console.error('Notification registration error:', err));
+    } catch (e) {
+      console.error('Critical error in registerForPushNotificationsAsync: ', e);
+    }
 
     // 3. Fullscreen Mode Configuration (Android)
     if (Platform.OS === 'android') {
-      NavigationBar.setBehaviorAsync('inset-touch');
-      NavigationBar.setVisibilityAsync('hidden');
+      try {
+        if (typeof NavigationBar !== 'undefined') {
+          NavigationBar.setBehaviorAsync('inset-touch').catch(e => console.error('NavigationBar setBehaviorAsync error:', e));
+          NavigationBar.setVisibilityAsync('hidden').catch(e => console.error('NavigationBar setVisibilityAsync error:', e));
+        }
+      } catch (e) {
+        console.error('Critical error in NavigationBar: ', e);
+      }
     }
   }, []);
 

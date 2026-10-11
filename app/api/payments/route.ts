@@ -19,13 +19,14 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const email = String(formData.get('email') || '').trim();
     const dramaId = String(formData.get('dramaId') || '').trim();
+    const tariffId = String(formData.get('tariffId') || '').trim();
     const typeRaw = String(formData.get('type') || '').trim();
     const episodeNumberRaw = formData.get('episodeNumber');
     const episodeNumber = episodeNumberRaw ? Number(episodeNumberRaw) : undefined;
     const receipt = formData.get('receipt');
 
     const typeParsed = formTypeSchema.safeParse(typeRaw);
-    if (!email || !typeParsed.success || !dramaId) {
+    if (!email || !typeParsed.success || !dramaId || !tariffId) {
       return NextResponse.json({ error: 'Жарамсыз деректер' }, { status: 400 });
     }
 
@@ -35,8 +36,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email жарамсыз' }, { status: 400 });
     }
 
+    // PDF check for receipt
     if (!(receipt instanceof File) || receipt.size === 0) {
-      return NextResponse.json({ error: 'Чек файлын жіберіңіз' }, { status: 400 });
+      return NextResponse.json({ error: 'PDF чек файлын жіберіңіз' }, { status: 400 });
+    }
+
+    if (receipt.type !== 'application/pdf') {
+      return NextResponse.json({ error: 'Тек PDF форматындағы чектер қабылданады' }, { status: 400 });
     }
 
     const type = typeParsed.data;
@@ -44,9 +50,6 @@ export async function POST(request: NextRequest) {
     if (type === 'SINGLE_EPISODE') {
       if (!episodeNumber || !Number.isInteger(episodeNumber)) {
         return NextResponse.json({ error: 'episodeNumber міндетті' }, { status: 400 });
-      }
-      if (episodeNumber < 11) {
-        return NextResponse.json({ error: '11+ эпизодтарға ғана төлем керек' }, { status: 400 });
       }
     }
 
@@ -56,7 +59,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Драма табылмады' }, { status: 404 });
     }
 
-    // Find/create user by email (no login exists in this repo)
+    // Ensure tariff exists
+    const tariff = await prisma.tariff.findUnique({ where: { id: tariffId }, select: { id: true } });
+    if (!tariff) {
+      return NextResponse.json({ error: 'Тариф табылмады' }, { status: 404 });
+    }
+
+    // Find/create user by email
     let user = await prisma.user.findUnique({ where: { email }, select: { id: true, name: true } });
     if (!user) {
       user = await prisma.user.create({
@@ -77,9 +86,10 @@ export async function POST(request: NextRequest) {
       data: {
         userId: user.id,
         dramaId,
+        tariffId,
         type,
         episodeNumber: type === 'SINGLE_EPISODE' ? (episodeNumber as number) : null,
-        receiptUrl: saved.receiptUrl,
+        receiptPdfUrl: saved.receiptUrl,
         kaspiNumber,
         status: 'PENDING',
       },
@@ -91,4 +101,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
-

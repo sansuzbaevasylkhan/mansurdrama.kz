@@ -4,35 +4,53 @@ import { Platform } from 'react-native';
 import { Alert } from 'react-native';
 
 export async function registerForPushNotificationsAsync() {
-  let token;
+  try {
+    let token;
 
-  if (Device.isDevice) {
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
+    if (Device.isDevice) {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      if (finalStatus !== 'granted') {
+        // Use a safe way to alert in async functions
+        console.log('Push notification permission not granted');
+        return null;
+      }
+
+      // Critical: Ensure the function exists before calling
+      if (typeof Notifications.getExpoPushTokenAsync === 'function') {
+        token = (await Notifications.getExpoPushTokenAsync()).data;
+      } else {
+        console.error('Notifications.getExpoPushTokenAsync is not a function');
+      }
+    } else {
+      console.log('Push notifications must be tested on a physical device');
     }
-    if (finalStatus !== 'granted') {
-      Alert.alert('Хабарламалар', 'Хабарламаларды алу үшін рұқсат беріңіз');
-      return;
+
+    if (Platform.OS === 'android') {
+      try {
+        if (typeof Notifications.setNotificationChannelAsync === 'function') {
+          await Notifications.setNotificationChannelAsync('default', {
+            name: 'default',
+            importance: Notifications.AndroidImportance.MAX,
+            vibrationPattern: [0, 250, 250, 250],
+            lightColor: '#ec4899',
+            sound: 'default',
+          });
+        }
+      } catch (e) {
+        console.error('setNotificationChannelAsync error:', e);
+      }
     }
-    token = (await Notifications.getExpoPushTokenAsync()).data;
-  } else {
-    console.log('Push notifications must be tested on a physical device');
-  }
 
-  if (Platform.OS === 'android') {
-    Notifications.setNotificationChannelAsync('default', {
-      name: 'default',
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#ec4899',
-      sound: 'default',
-    });
+    return token;
+  } catch (error) {
+    console.error('Critical error in registerForPushNotificationsAsync:', error);
+    return null;
   }
-
-  return token;
 }
 
 export const notificationHandler = {
