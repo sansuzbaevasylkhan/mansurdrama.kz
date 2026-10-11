@@ -60,37 +60,39 @@ export default function RootLayout() {
   useEffect(() => {
     // 1. Prevent screenshots and screen recording
     try {
-      if (typeof ScreenCapture !== 'undefined' && typeof ScreenCapture.preventScreenCaptureAsync === 'function') {
+      if (ScreenCapture && typeof ScreenCapture.preventScreenCaptureAsync === 'function') {
         ScreenCapture.preventScreenCaptureAsync()
           .then(() => console.log('Screenshots and recording prevented'))
           .catch(err => console.error('Screen capture prevention error:', err));
       }
     } catch (e) {
-      console.error('Critical error in ScreenCapture: ', e);
+      console.error('Critical error in ScreenCapture block: ', e);
     }
 
     // 2. Push notifications registration
     try {
-      registerForPushNotificationsAsync()
-        .then(token => {
-          if (token) {
-            console.log('Expo Push Token:', token);
-          }
-        })
-        .catch(err => console.error('Notification registration error:', err));
+      if (typeof registerForPushNotificationsAsync === 'function') {
+        registerForPushNotificationsAsync()
+          .then(token => {
+            if (token) {
+              console.log('Expo Push Token:', token);
+            }
+          })
+          .catch(err => console.error('Notification registration error:', err));
+      }
     } catch (e) {
-      console.error('Critical error in registerForPushNotificationsAsync: ', e);
+      console.error('Critical error in registerForPushNotificationsAsync block: ', e);
     }
 
     // 3. Fullscreen Mode Configuration (Android)
     if (Platform.OS === 'android') {
       try {
-        if (typeof NavigationBar !== 'undefined') {
+        if (NavigationBar && typeof NavigationBar.setBehaviorAsync === 'function') {
           NavigationBar.setBehaviorAsync('inset-touch').catch(e => console.error('NavigationBar setBehaviorAsync error:', e));
           NavigationBar.setVisibilityAsync('hidden').catch(e => console.error('NavigationBar setVisibilityAsync error:', e));
         }
       } catch (e) {
-        console.error('Critical error in NavigationBar: ', e);
+        console.error('Critical error in NavigationBar block: ', e);
       }
     }
   }, []);
