@@ -1,11 +1,18 @@
 import { View, Text, Pressable, ActivityIndicator, Alert, TextInput } from "react-native";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { Lock, Upload, CheckCircle2, LogIn } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import { paymentsApi } from "@/lib/endpoints";
 import { useUser } from "@/lib/user-store";
 import { Button } from "@/components/ui/Button";
+
+interface Tariff {
+  id: string;
+  name: string;
+  price: number;
+  type: string;
+}
 
 const KASPI_NUMBER = "+7 776 010 9510";
 
@@ -34,10 +41,26 @@ export function EpisodePaywall({
   const [receipt, setReceipt] = useState<{ uri: string; name: string; type: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
-  const [type, setType] = useState<"SINGLE_EPISODE" | "FULL_PACKAGE">("SINGLE_EPISODE");
+  const [tariffs, setTariffs] = useState<Tariff[]>([]);
+  const [selectedTariff, setSelectedTariff] = useState<Tariff | null>(null);
+  const [fetchingTariffs, setFetchingTariffs] = useState(true);
 
-  const singlePrice = 1500;
-  const fullPrice = 3000;
+  useEffect(() => {
+    async function loadTariffs() {
+      try {
+        const res = await paymentsApi.tariffs();
+        if (res.tariffs && res.tariffs.length > 0) {
+          setTariffs(res.tariffs);
+          setSelectedTariff(res.tariffs[0]);
+        }
+      } catch (e) {
+        console.error("Тарифтерді жүктеуде қате:", e);
+      } finally {
+        setFetchingTariffs(false);
+      }
+    }
+    loadTariffs();
+  }, []);
 
   const pickReceipt = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -64,6 +87,7 @@ export function EpisodePaywall({
     if (!fullName) return Alert.alert("Қате", "Аты-жөніңізді енгізіңіз");
     if (!phone) return Alert.alert("Қате", "Телефон нөмірін енгізіңіз");
     if (!receipt) return Alert.alert("Қате", "Чек файлды таңдаңыз");
+    if (!selectedTariff) return Alert.alert("Қате", "Тарифті таңдаңыз");
 
     setLoading(true);
     try {
@@ -72,8 +96,9 @@ export function EpisodePaywall({
       fd.append("fullName", fullName);
       fd.append("phone", phone);
       fd.append("dramaId", dramaId);
-      fd.append("type", type);
-      if (type === "SINGLE_EPISODE") fd.append("episodeNumber", String(episodeNumber));
+      fd.append("type", selectedTariff.type);
+      fd.append("amount", String(selectedTariff.price));
+      if (selectedTariff.type === "SINGLE_EPISODE") fd.append("episodeNumber", String(episodeNumber));
       // @ts-expect-error RN FormData accepts blob-like
       fd.append("receipt", {
         uri: receipt.uri,
@@ -106,6 +131,148 @@ export function EpisodePaywall({
           </Text>
           <Text className="mt-1 text-xs text-white/60">
             1-10 серия тегін. 11+ үшін қолмен төлем қажет.
+          </Text>
+
+          {!user ? (
+            <Pressable
+              onPress={() => router.push("/auth/login")}
+              className="mt-3 h-10 rounded-xl flex-row items-center justify-center gap-2"
+              style={{ backgroundColor: "rgba(236,72,153,0.10)", borderWidth: 1, borderColor: "rgba(236,72,153,0.30)" }}
+            >
+              <LogIn size={14} color="#f472b6" />
+              <Text className="text-xs font-semibold text-pink-300">
+                Тезірек төлеу үшін кіріңіз
+              </Text>
+            </Pressable>
+          ) : null}
+
+          {fetchingTariffs ? (
+            <View className="mt-3 flex-row items-center justify-center gap-2">
+              <ActivityIndicator size="small" color="#ec4899" />
+              <Text className="text-xs text-white/60">Тарифтер жүктелуде...</Text>
+            </View>
+          ) : (
+            <View className="mt-3 flex-row flex-wrap gap-2">
+              {tariffs.map((t) => (
+                <PriceCard
+                  key={t.id}
+                  title={t.name}
+                  price={t.price}
+                  active={selectedTariff?.id === t.id}
+                  onPress={() => setSelectedTariff(t)}
+                />
+              ))}
+              {tariffs.length === 0 && (
+                <Text className="text-xs text-white/40">Қолжетімді тарифтер жоқ</Text>
+              )}
+            </View>
+          )}
+
+          <View className="mt-3 rounded-xl border border-white/10 bg-white/[0.02] p-3">
+            <Text className="text-xs text-white/60">Kaspi нөмірі</Text>
+            <Text className="mt-1 text-base font-bold text-white">{KASPI_NUMBER}</Text>
+            <Text className="mt-1 text-[11px] text-white/50">
+              Көрсетілген соманы жіберіп, чек скриншотын жүктеңіз.
+            </Text>
+          </View>
+
+          <View className="mt-3 gap-3">
+            <FormField
+              label="Аты-жөніңіз"
+              value={fullName}
+              onChangeText={setFullName}
+              placeholder="Иванов Иван"
+            />
+            <FormField
+              label="Телефон"
+              value={phone}
+              onChangeText={setPhone}
+              placeholder="+7 700 000 0000"
+              keyboardType="phone-pad"
+            />
+            <FormField
+              label="Email"
+              value={email}
+              onChangeText={setEmail}
+              placeholder="you@example.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+
+            <View>
+              <Text className="text-xs text-white/60 mb-1.5">Чек скриншоты</Text>
+              <Pressable
+                onPress={pickReceipt}
+                className="flex-row items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5"
+              >
+                <Upload size={16} color="rgba(255,255,255,0.7)" />
+                <Text className="text-sm text-white/70" numberOfLines={1}>
+                  {receipt ? receipt.name : "Файл таңдаңыз"}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+
+          {loading ? (
+            <View className="mt-3 flex-row items-center gap-2">
+              <ActivityIndicator color="#ec4899" />
+              <Text className="text-xs text-white/60">Жіберілуде…</Text>
+            </View>
+          ) : (
+            <Button
+              title={sent ? "Жіберілді ✓" : "Төлемді жіберу"}
+              onPress={submit}
+              disabled={sent}
+              className="mt-4 w-full"
+            />
+          )}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function PriceCard({
+  title,
+  price,
+  active,
+  onPress,
+}: {
+  title: string;
+  price: number;
+  active: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      className="flex-1 rounded-xl border p-3"
+      style={{
+        backgroundColor: active ? "rgba(236,72,153,0.10)" : "rgba(255,255,255,0.03)",
+        borderColor: active ? "rgba(236,72,153,0.50)" : "rgba(255,255,255,0.10)",
+      }}
+    >
+      <Text className="text-xs text-white/60">{title}</Text>
+      <Text className="text-lg font-bold text-white">{price} ₸</Text>
+    </Pressable>
+  );
+}
+
+function FormField({
+  label,
+  ...rest
+}: { label: string } & React.ComponentProps<typeof TextInput>) {
+  return (
+    <View>
+      <Text className="text-xs text-white/60 mb-1.5">{label}</Text>
+      <TextInput
+        placeholderTextColor="rgba(255,255,255,0.4)"
+        className="h-11 px-3 rounded-xl bg-white/5 border border-white/10 text-white"
+        {...rest}
+      />
+    </View>
+  );
+}
           </Text>
 
           {!user ? (

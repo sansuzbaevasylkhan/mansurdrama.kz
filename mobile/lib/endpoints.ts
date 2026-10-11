@@ -33,6 +33,9 @@ export const dramasApi = {
 
 // ─── Төлем ─────────────────────────────────────────────────────
 export const paymentsApi = {
+  tariffs: () => apiFetch<{ tariffs: { id: string; name: string; price: number; type: string }[] }>(
+    "/api/tariffs",
+  ),
   submit: (formData: FormData) =>
     apiFetch<{ ok: true; paymentId: string }>("/api/payments", {
       method: "POST",
