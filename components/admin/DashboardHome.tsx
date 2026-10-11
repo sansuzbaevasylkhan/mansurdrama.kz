@@ -2,13 +2,17 @@
 
 import * as React from 'react';
 import { motion } from 'framer-motion';
-import { Film, Users, TrendingUp, Plus, Tv } from 'lucide-react';
+import { Film, Users, TrendingUp, Plus, Tv, DollarSign, Clock, Wallet } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface DashboardHomeProps {
   onOpenDramas: () => void;
   onOpenUsers: () => void;
   dramaCount: number;
   userCount: number;
+  totalRevenue?: number;
+  pendingPayments?: number;
+  activeTariffs?: number;
 }
 
 export function DashboardHome({
@@ -16,6 +20,9 @@ export function DashboardHome({
   onOpenUsers,
   dramaCount,
   userCount,
+  totalRevenue = 0,
+  pendingPayments = 0,
+  activeTariffs = 0,
 }: DashboardHomeProps) {
   return (
     <div className="space-y-8">
@@ -53,8 +60,21 @@ export function DashboardHome({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <StatCard label="Барлық дорама" value={dramaCount} icon={<Tv className="h-4 w-4" />} />
         <StatCard label="Қолданушы" value={userCount} icon={<Users className="h-4 w-4" />} />
+        <StatCard
+          label="Жалпы табыс"
+          value={`${totalRevenue.toLocaleString('ru-RU')} ₸`}
+          icon={<DollarSign className="h-4 w-4" />}
+        />
+        <StatCard
+          label="Күтудегі төлемдер"
+          value={pendingPayments}
+          icon={<Clock className="h-4 w-4" />}
+          highlight={pendingPayments > 0}
+        />
+        <StatCard label="Белсенді тарифтер" value={activeTariffs} icon={<Wallet className="h-4 w-4" />} />
         <StatCard label="Жүйе" value="OK" icon={<TrendingUp className="h-4 w-4" />} />
         <StatCard label="Тақырып" value="Dark" icon={<Plus className="h-4 w-4" />} />
+        <StatCard label="Төлемдер" value="Active" icon={<DollarSign className="h-4 w-4" />} />
       </div>
     </div>
   );
@@ -109,13 +129,18 @@ function StatCard({
   label,
   value,
   icon,
+  highlight = false,
 }: {
   label: string;
   value: React.ReactNode;
   icon: React.ReactNode;
+  highlight?: boolean;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 backdrop-blur-md">
+    <div className={cn(
+      "rounded-2xl border p-4 backdrop-blur-md transition-colors",
+      highlight ? "border-amber-500/50 bg-amber-500/10" : "border-white/10 bg-white/[0.02]"
+    )}>
       <div className="flex items-center gap-2 text-xs text-white/50">
         {icon}
         <span>{label}</span>

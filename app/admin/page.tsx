@@ -22,35 +22,25 @@ export default function AdminDashboardPage() {
 
 function DashboardInner() {
   const [tab, setTab] = React.useState<Tab>('dashboard');
-  const [dramaCount, setDramaCount] = React.useState(0);
-  const [userCount, setUserCount] = React.useState(0);
+  const [stats, setStats] = React.useState<any>(null);
+  const [loading, setLoading] = React.useState(true);
 
-  // Fetch counts for the dashboard home. We re-poll lightly so the cards
-  // stay roughly in sync as the user switches between tabs.
   React.useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
+    const loadStats = async () => {
       try {
-        const [dramas, users] = await Promise.all([
-          fetch('/api/dramas?admin=1', { cache: 'no-store' }).then((r) =>
-            r.ok ? r.json() : [],
-          ),
-          fetch('/api/users', { cache: 'no-store' }).then((r) =>
-            r.ok ? r.json() : [],
-          ),
-        ]);
-        if (cancelled) return;
-        setDramaCount(Array.isArray(dramas) ? dramas.length : 0);
-        setUserCount(Array.isArray(users) ? users.length : 0);
-      } catch {
-        // silent
+        const res = await fetch('/api/admin/stats', { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          setStats(data);
+        }
+      } catch (e) {
+        console.error('Stats load error:', e);
+      } finally {
+        setLoading(false);
       }
     };
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [tab]);
+    loadStats();
+  }, []);
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gradient-to-br from-dark-950 via-dark-900 to-black text-white">
@@ -72,8 +62,11 @@ function DashboardInner() {
               <DashboardHome
                 onOpenDramas={() => setTab('dramas')}
                 onOpenUsers={() => setTab('users')}
-                dramaCount={dramaCount}
-                userCount={userCount}
+                dramaCount={stats?.totalDramas || 0}
+                userCount={stats?.totalUsers || 0}
+                totalRevenue={stats?.totalRevenue || 0}
+                pendingPayments={stats?.pendingPayments || 0}
+                activeTariffs={stats?.activeTariffs || 0}
               />
             ) : tab === 'dramas' ? (
               <DramaManagement />

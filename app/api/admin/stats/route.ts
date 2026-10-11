@@ -9,11 +9,17 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [totalDramas, totalEpisodes, totalUsers, viewsAgg] = await Promise.all([
+    const [totalDramas, totalEpisodes, totalUsers, viewsAgg, pendingPayments, approvedPayments, activeTariffs] = await Promise.all([
       prisma.drama.count(),
       prisma.episode.count(),
       prisma.user.count(),
       prisma.drama.aggregate({ _sum: { views: true } }),
+      prisma.payment.count({ where: { status: 'PENDING' } }),
+      prisma.payment.aggregate({
+        where: { status: 'APPROVED' },
+        _sum: { amount: true }
+      }),
+      prisma.tariff.count({ where: { isActive: true } }),
     ]);
 
     const stats = {
@@ -21,6 +27,9 @@ export async function GET() {
       totalEpisodes,
       totalUsers,
       totalViews: viewsAgg._sum.views || 0,
+      pendingPayments,
+      totalRevenue: approvedPayments._sum.amount || 0,
+      activeTariffs,
     };
 
     return NextResponse.json(stats);
