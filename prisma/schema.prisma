@@ -31,6 +31,7 @@ model Drama {
   payments        Payment[]
   unlockedContent UnlockedContent[]
   watchHistory    WatchHistory[]
+  tariffDramas    TariffDrama[]
 
   @@index([slug])
   @@index([createdAt])
@@ -100,15 +101,17 @@ model User {
 }
 
 model Tariff {
-  id          String   @id @default(cuid())
-  name        String   // Мысалы: "Келесі серияны ашу" немесе "Толық пакет"
-  price       Float
-  description String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(cuid())
+  name         String   // Мысалы: "Келесі серияны ашу" немесе "Толық пакет"
+  price        Float
+  paymentPhone String?  // Kaspi төлем жасау нөмірі
+  description  String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  payments Payment[]
+  payments     Payment[]
+  tariffDramas TariffDrama[]
 }
 
 model Payment {
@@ -132,6 +135,17 @@ model Payment {
   @@index([userId])
   @@index([dramaId])
   @@index([createdAt])
+}
+
+model TariffDrama {
+  tariffId String
+  dramaId  String
+
+  tariff Tariff @relation(fields: [tariffId], references: [id], onDelete: Cascade)
+  drama  Drama  @relation(fields: [dramaId], references: [id], onDelete: Cascade)
+
+  @@id([tariffId, dramaId])
+  @@index([dramaId])
 }
 
 model UnlockedContent {

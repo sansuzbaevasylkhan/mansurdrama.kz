@@ -7,9 +7,10 @@ import { DashboardHome } from '@/components/admin/DashboardHome';
 import { DramaManagement } from '@/components/admin/DramaManagement';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { Payments } from '@/components/admin/Payments';
+import { TariffManagement } from '@/components/admin/TariffManagement';
 import { ToastProvider } from '@/components/ui/toast';
 
-type Tab = 'dashboard' | 'dramas' | 'users' | 'payments';
+type Tab = 'dashboard' | 'dramas' | 'users' | 'payments' | 'tariffs';
 
 export default function AdminDashboardPage() {
   return (
@@ -80,6 +81,8 @@ function DashboardInner() {
               <div className="h-full">
                 <Payments />
               </div>
+            ) : tab === 'tariffs' ? (
+              <TariffManagement />
             ) : (
               <UserManagement />
             )}

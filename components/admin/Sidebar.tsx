@@ -11,11 +11,12 @@ import {
   LogOut,
   Globe,
   DollarSign,
+  Wallet,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 
-type Tab = 'dashboard' | 'dramas' | 'users' | 'payments';
+type Tab = 'dashboard' | 'dramas' | 'users' | 'payments' | 'tariffs';
 
 interface SidebarProps {
   tab: Tab;
@@ -28,6 +29,7 @@ const NAV: { key: Tab; label: string; icon: React.ComponentType<{ className?: st
   { key: 'dramas', label: 'Дорамалар', icon: Film },
   { key: 'users', label: 'Қолданушылар', icon: Users },
   { key: 'payments', label: 'Төлемдер', icon: DollarSign },
+  { key: 'tariffs', label: 'Тарифтерді басқару', icon: Wallet },
 ];
 
 
