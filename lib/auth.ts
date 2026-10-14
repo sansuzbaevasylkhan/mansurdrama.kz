@@ -47,7 +47,7 @@ export async function authenticateAdmin(password: string) {
         email: 'admin@mansurdrama.kz',
         name: 'Admin',
         role: 'ADMIN' as UserRole,
-        password: await hashPassword(adminPassword),
+        passwordHash: await hashPassword(adminPassword),
       },
     });
   }

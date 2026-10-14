@@ -3,12 +3,47 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
 import { uploadPaymentReceipt } from '@/lib/receipt-storage';
+import { getSessionFromToken } from '@/lib/auth';
 
 const kaspiNumber = '+7 776 010 9510';
 
 const formTypeSchema = z.enum(['SINGLE_EPISODE', 'FULL_PACKAGE']);
 
+export async function GET(request: NextRequest) {
+  const authHeader = request.headers.get('authorization');
+  const token = authHeader?.split(' ')[1];
+  const session = await getSessionFromToken(token);
+
+  if (!session) {
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+  }
+
+  try {
+    const payments = await prisma.payment.findMany({
+      where: { userId: session.userId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        drama: { select: { title: true } },
+        tariff: { select: { name: true, price: true } },
+      },
+    });
+
+    return NextResponse.json({ payments });
+  } catch (err) {
+    console.error('GET /api/payments/my error:', err);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
+}
+
 export async function POST(request: NextRequest) {
+  const authHeader = request.headers.get('authorization');
+  const token = authHeader?.split(' ')[1];
+  const session = await getSessionFromToken(token);
+
+  if (!session) {
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+  }
+
   const ip = getClientIp(request.headers);
   const limiter = rateLimit(`payments:${ip}`, { windowMs: 60_000, max: 10 });
   if (!limiter.ok) {
@@ -17,7 +52,6 @@ export async function POST(request: NextRequest) {
 
   try {
     const formData = await request.formData();
-    const email = String(formData.get('email') || '').trim();
     const dramaId = String(formData.get('dramaId') || '').trim();
     const tariffId = String(formData.get('tariffId') || '').trim();
     const typeRaw = String(formData.get('type') || '').trim();
@@ -26,14 +60,8 @@ export async function POST(request: NextRequest) {
     const receipt = formData.get('receipt');
 
     const typeParsed = formTypeSchema.safeParse(typeRaw);
-    if (!email || !typeParsed.success || !dramaId || !tariffId) {
+    if (!typeParsed.success || !dramaId || !tariffId) {
       return NextResponse.json({ error: 'Жарамсыз деректер' }, { status: 400 });
-    }
-
-    const emailSchema = z.string().email();
-    const emailParsed = emailSchema.safeParse(email);
-    if (!emailParsed.success) {
-      return NextResponse.json({ error: 'Email жарамсыз' }, { status: 400 });
     }
 
     // PDF check for receipt
@@ -65,26 +93,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Тариф табылмады' }, { status: 404 });
     }
 
-    // Find/create user by email
-    let user = await prisma.user.findUnique({ where: { email }, select: { id: true, name: true } });
-    if (!user) {
-      user = await prisma.user.create({
-        data: {
-          email,
-          name: email.split('@')[0] || 'User',
-          password: '',
-          role: 'USER',
-        },
-        select: { id: true, name: true },
-      });
-    }
-
     // Upload receipt
     const saved = await uploadPaymentReceipt(receipt);
 
     const payment = await prisma.payment.create({
       data: {
-        userId: user.id,
+        userId: session.userId,
         dramaId,
         tariffId,
         type,

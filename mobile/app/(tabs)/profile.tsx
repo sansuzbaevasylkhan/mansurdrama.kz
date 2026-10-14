@@ -1,23 +1,22 @@
 import { useEffect, useState } from "react";
-import { View, Text, Pressable, Alert, ScrollView } from "react-native";
-import { Image } from "expo-image";
+import { View, Text, Pressable, Alert, ScrollView, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { LogOut, Mail, User as UserIcon, Tv, Clock, Heart, Play } from "lucide-react-native";
-import { useUser } from "@/lib/user-store";
+import { LinearGradient } from "expo-linear-gradient";
+import { useAuth } from "@/context/AuthContext";
 import { watchHistoryApi } from "@/lib/endpoints";
 import type { ContinueWatchingItem } from "@/lib/types";
 import { formatDuration } from "@/lib/utils";
+import { Button } from "@/components/ui/Button";
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const user = useUser((s) => s.user);
-  const logout = useUser((s) => s.logout);
-  const hydrated = useUser((s) => s.hydrated);
+  const { user, logout, isAuthenticated, isLoading } = useAuth();
   const [continueWatching, setContinueWatching] = useState<ContinueWatchingItem[]>([]);
 
   useEffect(() => {
-    if (!user) {
+    if (!isAuthenticated) {
       setContinueWatching([]);
       return;
     }
@@ -25,30 +24,54 @@ export default function ProfileScreen() {
       .continueWatching()
       .then((res) => setContinueWatching(res.items))
       .catch(() => {});
-  }, [user]);
+  }, [isAuthenticated]);
 
-  if (!hydrated) return null;
+  if (isLoading) return null;
 
-  if (!user) {
+  if (!isAuthenticated) {
     return (
-      <SafeAreaView className="flex-1 bg-dark-950 items-center justify-center px-6" edges={["top"]}>
-        <View
-          className="h-16 w-16 rounded-2xl items-center justify-center mb-4"
-          style={{ backgroundColor: "rgba(236,72,153,0.20)" }}
+      <SafeAreaView className="flex-1 bg-[#0A0A0F]" edges={["top"]}>
+        {/* Gradient Header */}
+        <LinearGradient
+          colors={["#EC4899", "#8B5CF6"]}
+          className="px-6 pt-10 pb-16 rounded-b-[40px] flex-row items-center gap-3"
         >
-          <UserIcon size={28} color="#f472b6" />
+          <Image
+            source={require("@/assets/md.png")}
+            className="w-10 h-10 rounded-full bg-white/20"
+            resizeMode="contain"
+          />
+          <Text className="text-xl font-bold text-white">Mansur Drama</Text>
+        </LinearGradient>
+
+        <View className="flex-1 items-center justify-center px-6">
+          <View
+            className="h-20 w-20 rounded-3xl items-center justify-center mb-6"
+            style={{ backgroundColor: "rgba(236,72,153,0.15)" }}
+          >
+            <UserIcon size={40} color="#EC4899" />
+          </View>
+          <Text className="text-2xl font-bold text-white text-center">Кіру қажет</Text>
+          <Text className="mt-2 text-sm text-white/60 text-center mb-8">
+            11+ сериалды ашу үшін аккаунт жасаңыз
+          </Text>
+
+          <LinearGradient
+            colors={["#EC4899", "#8B5CF6"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            className="rounded-2xl overflow-hidden w-full max-w-xs"
+          >
+            <Button
+              title="Email-мен кіру"
+              onPress={() => router.push("/auth/login")}
+              className="w-full py-4 bg-transparent"
+            />
+          </LinearGradient>
         </View>
-        <Text className="text-xl font-bold text-white">Кіру қажет</Text>
-        <Text className="mt-1 text-sm text-white/60 text-center">
-          11+ серияларды ашу үшін аккаунт жасаңыз
-        </Text>
-        <Pressable
-          onPress={() => router.push("/auth/login")}
-          className="mt-5 h-12 px-6 rounded-2xl items-center justify-center"
-          style={{ backgroundColor: "#ec4899" }}
-        >
-          <Text className="text-white font-semibold">Email-мен кіру</Text>
-        </Pressable>
+
+        {/* Bottom Tab Line Indicator */}
+        <View className="absolute bottom-0 left-0 right-0 h-1 bg-[#EC4899] opacity-50" />
       </SafeAreaView>
     );
   }
@@ -100,7 +123,6 @@ export default function ProfileScreen() {
     );
   };
 
-
   return (
     <SafeAreaView className="flex-1 bg-dark-950" edges={["top"]}>
       <ScrollView contentContainerClassName="px-4 pt-3 pb-24">
@@ -116,17 +138,17 @@ export default function ProfileScreen() {
             style={{ backgroundColor: "#ec4899" }}
           >
             <Text className="text-2xl font-bold text-white">
-              {user.name?.charAt(0)?.toUpperCase() ?? "U"}
+              {user?.name?.charAt(0)?.toUpperCase() ?? "U"}
             </Text>
           </View>
           <View className="flex-1 min-w-0">
             <Text className="text-lg font-bold text-white" numberOfLines={1}>
-              {user.name}
+              {user?.name}
             </Text>
             <View className="flex-row items-center gap-1 mt-1">
               <Mail size={12} color="rgba(255,255,255,0.5)" />
               <Text className="text-xs text-white/50" numberOfLines={1}>
-                {user.email}
+                {user?.email}
               </Text>
             </View>
           </View>
@@ -237,7 +259,6 @@ export default function ProfileScreen() {
         >
           <Text className="text-sm font-semibold text-red-500">Аккаунтты жою</Text>
         </Pressable>
-
       </ScrollView>
     </SafeAreaView>
   );
@@ -248,7 +269,7 @@ function StatBox({ icon, label, value }: { icon: React.ReactNode; label: string;
     <View
       className="flex-1 rounded-2xl border border-white/10 p-3"
       style={{ backgroundColor: "rgba(255,255,255,0.02)" }}
-    >
+      >
       <View className="flex-row items-center gap-1.5">
         {icon}
         <Text className="text-[11px] text-white/50">{label}</Text>

@@ -9,6 +9,10 @@ import { useNetwork } from '@/lib/useNetwork';
 import { NetworkStatusBar } from '@/components/ui/NetworkStatusBar';
 import * as NavigationBar from 'expo-navigation-bar';
 import * as ScreenCapture from 'expo-screen-capture';
+import { AuthProvider } from '@/context/AuthContext';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 
 // Configure how notifications are handled when the app is foregrounded
 Notifications.setNotificationHandler({
@@ -98,18 +102,22 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <ErrorBoundary>
-      <>
-        <NetworkStatusBar isConnected={isConnected} />
-        <StatusBar hidden={true} style="light" />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: "#0a0a10" },
-          }}
-        />
-      </>
-    </ErrorBoundary>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <ErrorBoundary>
+          <>
+            <NetworkStatusBar isConnected={isConnected} />
+            <StatusBar hidden={true} style="light" />
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: "#0a0a10" },
+              }}
+            />
+          </>
+        </ErrorBoundary>
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }
 

@@ -45,16 +45,17 @@ export const paymentsApi = {
 
 // ─── User auth ─────────────────────────────────────────────
 export const userApi = {
-  login: async (email: string, name?: string) => {
-    const res = await apiFetch<{ ok: true; token: string; user: PublicUser }>(
-      "/api/auth/user-login",
-      { method: "POST", body: { email, name } },
+  register: async (params: { name: string; email: string; password: string }) => {
+    return apiFetch<{ token: string; user: PublicUser }>(
+      "/api/auth/register",
+      { method: "POST", body: params },
     );
-    if (res.token) {
-      await userStore.setToken(res.token);
-      await userStore.setUser(res.user);
-    }
-    return res;
+  },
+  login: async (params: { email: string; password: string }) => {
+    return apiFetch<{ token: string; user: PublicUser }>(
+      "/api/auth/login",
+      { method: "POST", body: params },
+    );
   },
   logout: async () => {
     try {

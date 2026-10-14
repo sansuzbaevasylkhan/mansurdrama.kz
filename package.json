@@ -26,6 +26,7 @@
     "@supabase/supabase-js": "^2.110.8",
     "bcryptjs": "^2.4.3",
     "clsx": "^2.1.1",
+    "expo-server-sdk": "^7.2.0",
     "framer-motion": "^11.18.2",
     "hls.js": "^1.7.3",
     "jose": "^5.9.3",

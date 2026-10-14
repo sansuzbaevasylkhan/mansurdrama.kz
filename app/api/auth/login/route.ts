@@ -1,36 +1,65 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { authenticateAdmin, createSessionToken, setSessionCookie } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { verifyPassword, createSessionToken } from '@/lib/auth';
 
-const schema = z.object({ password: z.string().min(1) });
+const loginSchema = z.object({
+  email: z.string().email('Email дұрыс емес'),
+  password: z.string().min(1, 'Құпиясөз енгізіңіз'),
+});
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const parsed = schema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json({ error: 'Құпиясөз енгізіңіз' }, { status: 400 });
+    const result = loginSchema.safeParse(body);
+
+    if (!result.success) {
+      return NextResponse.json(
+        { error: result.error.errors[0].message },
+        { status: 400 }
+      );
     }
-    const admin = await authenticateAdmin(parsed.data.password);
-    if (!admin) {
-      return NextResponse.json({ error: 'Құпиясөз қате' }, { status: 401 });
-    }
-    const token = await createSessionToken({
-      userId: admin.id,
-      email: admin.email,
-      name: admin.name,
-      role: 'ADMIN',
+
+    const { email, password } = result.data;
+    const normalizedEmail = email.toLowerCase();
+
+    const user = await prisma.user.findUnique({
+      where: { email: normalizedEmail },
     });
-    await setSessionCookie(token);
+
+    if (!user || !user.passwordHash) {
+      return NextResponse.json(
+        { error: 'Кіру деректері қате' },
+        { status: 401 }
+      );
+    }
+
+    const isPasswordValid = await verifyPassword(password, user.passwordHash);
+    if (!isPasswordValid) {
+      return NextResponse.json(
+        { error: 'Кіру деректері қате' },
+        { status: 401 }
+      );
+    }
+
+    const token = await createSessionToken({
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role as any,
+    });
+
     return NextResponse.json({
-      ok: true,
-      user: { id: admin.id, name: admin.name, email: admin.email, role: 'ADMIN' },
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
     });
   } catch (err) {
     console.error('Login error:', err);
-    return NextResponse.json(
-      { error: 'Сервер қатесі' },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: 'Сервер қатесі' }, { status: 500 });
   }
 }

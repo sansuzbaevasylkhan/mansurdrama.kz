@@ -12,11 +12,14 @@ import {
   Globe,
   DollarSign,
   Wallet,
+  Calendar,
+  AlertCircle,
+  Settings,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 
-type Tab = 'dashboard' | 'dramas' | 'users' | 'payments' | 'tariffs';
+type Tab = 'dashboard' | 'dramas' | 'users' | 'payments' | 'tariffs' | 'scheduled' | 'refunds' | 'config';
 
 interface SidebarProps {
   tab: Tab;
@@ -30,6 +33,9 @@ const NAV: { key: Tab; label: string; icon: React.ComponentType<{ className?: st
   { key: 'users', label: 'Қолданушылар', icon: Users },
   { key: 'payments', label: 'Төлемдер', icon: DollarSign },
   { key: 'tariffs', label: 'Тарифтерді басқару', icon: Wallet },
+  { key: 'scheduled', label: 'Жоспарланған эпизодтар', icon: Calendar },
+  { key: 'refunds', label: 'Қайтару өтініштері', icon: AlertCircle },
+  { key: 'config', label: 'Конфигурация', icon: Settings },
 ];
 
 

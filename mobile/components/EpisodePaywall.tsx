@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import { Lock, Upload, LogIn } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import { paymentsApi } from "@/lib/endpoints";
-import { useUser } from "@/lib/user-store";
+import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
 
 interface Tariff {
@@ -34,9 +34,9 @@ export function EpisodePaywall({
   onUnlocked,
 }: Props) {
   const router = useRouter();
-  const user = useUser((s) => s.user);
-  const [email, setEmail] = useState(userEmail ?? "");
-  const [fullName, setFullName] = useState(userName ?? "");
+  const { user, isAuthenticated } = useAuth();
+  const [email, setEmail] = useState(userEmail ?? user?.email ?? "");
+  const [fullName, setFullName] = useState(userName ?? user?.name ?? "");
   const [phone, setPhone] = useState("");
   const [receipt, setReceipt] = useState<{ uri: string; name: string; type: string } | null>(null);
   const [loading, setLoading] = useState(false);
@@ -133,7 +133,7 @@ export function EpisodePaywall({
             1-10 серия тегін. 11+ үшін қолмен төлем қажет.
           </Text>
 
-          {!user ? (
+          {!isAuthenticated ? (
             <Pressable
               onPress={() => router.push("/auth/login")}
               className="mt-3 h-10 rounded-xl flex-row items-center justify-center gap-2"

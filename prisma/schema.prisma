@@ -1,8 +1,3 @@
-// Local development schema (SQLite).
-// Copy this file to schema.prisma when working locally:
-//   cp prisma/schema.sqlite.prisma prisma/schema.prisma
-// Then run: npx prisma migrate dev
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,6 +6,24 @@ datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum EpisodeStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+}
+
+enum RefundStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 model Drama {
@@ -39,18 +52,23 @@ model Drama {
 }
 
 model Episode {
-  id            String   @id @default(cuid())
+  id            String        @id @default(cuid())
   episodeNumber Int
   title         String
   videoUrl      String
   playbackId    String?
   muxAssetId    String?
   muxUploadId   String?
-  duration      Int      @default(0)
+  duration      Int           @default(0)
   thumbnail     String?
-  views         Int      @default(0)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  views         Int           @default(0)
+  status        EpisodeStatus @default(PUBLISHED)
+  publishAt     DateTime?
+  publishedAt   DateTime?
+  notifiedAt    DateTime?
+  scheduledAt   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   dramaId String
   drama   Drama @relation(fields: [dramaId], references: [id], onDelete: Cascade)
@@ -59,6 +77,8 @@ model Episode {
 
   @@unique([dramaId, episodeNumber])
   @@index([dramaId])
+  @@index([status])
+  @@index([status, publishAt])
 }
 
 model WatchHistory {
@@ -82,22 +102,84 @@ model WatchHistory {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  avatar    String?
-  banner    String?
-  password  String   @default("")
-  role      String   @default("USER")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                String   @id @default(cuid())
+  name              String
+  email             String   @unique
+  avatar            String?
+  banner            String?
+  passwordHash      String?
+  role              String   @default("USER")
+  notifyNewEpisodes Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   payments       Payment[]
   unlockedContent UnlockedContent[]
   watchHistory    WatchHistory[]
+  notifications   Notification[]
+  pushTokens     PushToken[]
 
   @@index([email])
   @@index([createdAt])
+}
+
+model RefundRequest {
+  id                String      @id @default(cuid())
+  paymentId         String      @unique
+  userId            String
+  reason            String
+  status            RefundStatus @default(PENDING)
+  adminComment      String?
+  manuallyRefunded  Boolean     @default(false)
+  resolvedAt        DateTime?
+  resolvedBy       String?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payment Payment @relation(fields: [paymentId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  body      String
+  type      String   // PAYMENT | EPISODE | SYSTEM
+  payload   Json?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+}
+
+model PushToken {
+  id         String   @id @default(cuid())
+  userId     String
+  token      String   @unique
+  deviceType String?  // ios | android
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+}
+
+model AppConfig {
+  id                      String @id @default("singleton")
+  latestVersion           String
+  minimumSupportedVersion String
+  forceUpdate             Boolean @default(false)
+  storeUrl                String
+  message                 String?
+  updatedAt               DateTime @updatedAt
 }
 
 model Tariff {
@@ -115,21 +197,25 @@ model Tariff {
 }
 
 model Payment {
-  id            String   @id @default(cuid())
+  id            String        @id @default(cuid())
   userId        String
   dramaId       String
-  tariffId      String   // Қай тариф таңдалды
-  type          String   // SINGLE_EPISODE | FULL_PACKAGE
+  tariffId      String        // Қай тариф таңдалды
+  type          String        // SINGLE_EPISODE | FULL_PACKAGE
   episodeNumber Int?
-  receiptPdfUrl String   // PDF чек сілтемесі
+  receiptPdfUrl String
   kaspiNumber   String
-  status        String   @default("PENDING") // PENDING | APPROVED | REJECTED
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  status        PaymentStatus @default(PENDING)
+  rejectReason  String?
+  reviewedBy    String?
+  reviewedAt    DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   drama  Drama  @relation(fields: [dramaId], references: [id], onDelete: Cascade)
   tariff Tariff @relation(fields: [tariffId], references: [id])
+  refund RefundRequest?
 
   @@index([status])
   @@index([userId])
@@ -142,7 +228,7 @@ model TariffDrama {
   dramaId  String
 
   tariff Tariff @relation(fields: [tariffId], references: [id], onDelete: Cascade)
-  drama  Drama  @relation(fields: [dramaId], references: [id], onDelete: Cascade)
+  drama  Drama @relation(fields: [dramaId], references: [id], onDelete: Cascade)
 
   @@id([tariffId, dramaId])
   @@index([dramaId])
