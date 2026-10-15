@@ -1,51 +1,52 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { getSessionFromToken } from '@/lib/auth';
+import { notifyUser } from '@/lib/push';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const authHeader = request.headers.get('authorization');
+  const token = authHeader?.split(' ')[1];
+  const session = await getSessionFromToken(token);
+
+  if (!session) {
+    return NextResponse.json({ error: 'Авторизация қажет' }, { status: 401 });
+  }
+
   try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json({ error: "Авторизация қажет" }, { status: 401 });
-    }
-
     const notifications = await prisma.notification.findMany({
       where: { userId: session.userId },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
     });
 
     return NextResponse.json({ notifications });
-  } catch (error) {
-    console.error("[NOTIF_GET_ERROR]", error);
-    return NextResponse.json({ error: "Хабарламаларды алу мүмкін болмады" }, { status: 500 });
+  } catch (err) {
+    console.error('GET /api/notifications error:', err);
+    return NextResponse.json({ error: 'Сервер қатесі' }, { status: 500 });
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function PATCH(request: NextRequest) {
+  const authHeader = request.headers.get('authorization');
+  const token = authHeader?.split(' ')[1];
+  const session = await getSessionFromToken(token);
+
+  if (!session) {
+    return NextResponse.json({ error: 'Авторизация қажет' }, { status: 401 });
+  }
+
   try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json({ error: "Авторизация қажет" }, { status: 401 });
-    }
-
-    const body = await request.json();
-    const { notificationIds } = body;
-
-    if (!notificationIds || !Array.isArray(notificationIds)) {
-      return NextResponse.json({ error: "ID тізімі міндетті" }, { status: 400 });
-    }
-
     await prisma.notification.updateMany({
       where: {
-        id: { in: notificationIds },
         userId: session.userId,
+        isRead: false,
       },
       data: { isRead: true },
     });
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("[NOTIF_READ_ERROR]", error);
-    return NextResponse.json({ error: "Мәртебені өзгерту мүмкін болмады" }, { status: 500 });
+  } catch (err) {
+    console.error('PATCH /api/notifications error:', err);
+    return NextResponse.json({ error: 'Сервер қатесі' }, { status: 500 });
   }
 }

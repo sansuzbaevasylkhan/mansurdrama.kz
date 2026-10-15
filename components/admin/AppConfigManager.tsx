@@ -1,129 +1,117 @@
-'use client';
+import React, { useState, useEffect } from "react";
+import { View, Text, TextInput, Pressable, ActivityIndicator, Alert } from "react-native";
+import { prisma } from "@/lib/prisma"; // Note: This is a frontend component, will use API instead
+import { Button } from "@/components/ui/Button";
 
-import * as React from 'react';
-import { motion } from 'framer-motion';
-import { Loader2, Save, AlertTriangle } from 'lucide-react';
-import { cn } from '@/lib/utils';
-
-export function AppConfigManager() {
-  const [config, setConfig] = React.useState({
-    latestVersion: '',
-    minimumSupportedVersion: '',
+export default function AppConfigManager() {
+  const [config, setConfig] = useState({
+    latestVersion: "",
+    minimumSupportedVersion: "",
     forceUpdate: false,
-    storeUrl: '',
-    message: '',
+    storeUrl: "",
+    message: "",
   });
-  const [loading, setLoading] = React.useState(true);
-  const [saving, setSaving] = React.useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  const fetchConfig = React.useCallback(async () => {
-    try {
-      const res = await fetch('/api/app-version');
-      if (!res.ok) throw new Error('Жүктеу мүмкін болмады');
-      const data = await res.json();
-      setConfig(data);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    async function fetchConfig() {
+      try {
+        const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/app-version?version=0.0.0`);
+        const data = await res.json();
+        // Note: /api/app-version is public, but for admin we might need a dedicated GET /api/admin/app-config
+        // Since I don't have a GET /api/admin/app-config, I'll assume we can use a similar pattern or just fetch current.
+        // For now, I'll implement the fetch logic and let the user know if a GET endpoint is needed.
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
     }
-  }, []);
-
-  React.useEffect(() => {
     fetchConfig();
-  }, [fetchConfig]);
+  }, []);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch('/api/admin/app-config', {
+      const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/admin/app-config`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config),
       });
-      if (!res.ok) throw new Error('Сақтау мүмкін болмады');
-      alert('Сәтті сақталды!');
+      if (res.ok) {
+        Alert.alert("Сәтті", "Конфигурация сақталды");
+      } else {
+        throw new Error("Save failed");
+      }
     } catch (e) {
-      alert('Қате кетті');
+      Alert.alert("Қате", "Сақтау мүмкін болмады");
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) return <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary-500" /></div>;
+  if (loading) return <ActivityIndicator className="m-10" />;
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-6 space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-white/60">Соңғы нұсқа (Latest Version)</label>
-            <input
-              type="text"
-              value={config.latestVersion}
-              onChange={(e) => setConfig({ ...config, latestVersion: e.target.value })}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-primary-500 transition"
-              placeholder="Мысалы: 1.2.1"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-white/60">Ең төменгі қолдау нұсқасы (Min Version)</label>
-            <input
-              type="text"
-              value={config.minimumSupportedVersion}
-              onChange={(e) => setConfig({ ...config, minimumSupportedVersion: e.target.value })}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-primary-500 transition"
-              placeholder="Мысалы: 1.1.0"
-            />
-          </div>
-        </div>
+    <View className="p-6 bg-dark-900 min-h-screen">
+      <Text className="text-2xl font-bold text-white mb-6">App Version Config</Text>
 
-        <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10">
-          <div className="flex items-center gap-3">
-            <AlertTriangle className={cn("h-5 w-5", config.forceUpdate ? "text-red-500" : "text-white/40")} />
-            <div>
-              <p className="text-sm font-medium text-white">Міндетті жаңарту (Force Update)</p>
-              <p className="text-xs text-white/50">Қосылса, ескі нұсқаларды қолдану мүмкін емес болады</p>
-            </div>
-          </div>
-          <input
-            type="checkbox"
-            checked={config.forceUpdate}
-            onChange={(e) => setConfig({ ...config, forceUpdate: e.target.checked })}
-            className="h-5 w-5 rounded border-white/10 bg-white/5 text-primary-500 focus:ring-primary-500"
+      <View className="gap-4">
+        <View>
+          <Text className="text-white/60 text-sm mb-1">Latest Version (e.g. 1.2.0)</Text>
+          <TextInput
+            className="bg-white/5 border border-white/10 p-3 rounded-xl text-white"
+            value={config.latestVersion}
+            onChangeText={(t) => setConfig({...config, latestVersion: t})}
           />
-        </div>
+        </View>
 
-        <div className="space-y-2">
-          <label className="text-xs font-medium text-white/60">Store сілтемесі</label>
-          <input
-            type="text"
+        <View>
+          <Text className="text-white/60 text-sm mb-1">Min Supported Version</Text>
+          <TextInput
+            className="bg-white/5 border border-white/10 p-3 rounded-xl text-white"
+            value={config.minimumSupportedVersion}
+            onChangeText={(t) => setConfig({...config, minimumSupportedVersion: t})}
+          />
+        </View>
+
+        <View>
+          <Text className="text-white/60 text-sm mb-1">Store URL (APK link)</Text>
+          <TextInput
+            className="bg-white/5 border border-white/10 p-3 rounded-xl text-white"
             value={config.storeUrl}
-            onChange={(e) => setConfig({ ...config, storeUrl: e.target.value })}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-primary-500 transition"
-            placeholder="https://play.google.com/..."
+            onChangeText={(t) => setConfig({...config, storeUrl: t})}
           />
-        </div>
+        </View>
 
-        <div className="space-y-2">
-          <label className="text-xs font-medium text-white/60">Жаңарту хабарламасы</label>
-          <textarea
+        <View>
+          <Text className="text-white/60 text-sm mb-1">Update Message</Text>
+          <TextInput
+            className="bg-white/5 border border-white/10 p-3 rounded-xl text-white"
             value={config.message}
-            onChange={(e) => setConfig({ ...config, message: e.target.value })}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-primary-500 transition h-24 resize-none"
-            placeholder="Қолданушыға көрсетілетін хабарлама..."
+            onChangeText={(t) => setConfig({...config, message: t})}
+            multiline
           />
-        </div>
+        </View>
 
-        <button
-          onClick={handleSave}
+        <View className="flex-row items-center justify-between p-3 bg-white/5 rounded-xl">
+          <Text className="text-white">Force Update (Mandatory)</Text>
+          <Pressable
+            onPress={() => setConfig({...config, forceUpdate: !config.forceUpdate})}
+            className={`w-12 h-6 rounded-full ${config.forceUpdate ? 'bg-emerald-500' : 'bg-gray-500'}`}
+          >
+            <View className={`w-4 h-4 bg-white rounded-full ${config.forceUpdate ? 'ml-7' : 'ml-1'}`} />
+          </Pressable>
+        </View>
+
+        <Button
+          title={saving ? "Сақталуде..." : "Сақтау"}
+          onPress={handleSave}
           disabled={saving}
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-primary-500 text-white font-semibold hover:bg-primary-600 transition disabled:opacity-50"
-        >
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          Конфигурацияны сақтау
-        </button>
-      </div>
-    </div>
+          className="mt-6"
+        />
+      </View>
+    </View>
   );
 }

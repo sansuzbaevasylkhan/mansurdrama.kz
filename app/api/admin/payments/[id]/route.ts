@@ -1,154 +1,106 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireAdmin } from '@/lib/api-guards';
 import { prisma } from '@/lib/prisma';
-import { sendPushNotification } from '@/lib/notifications';
+import { getSessionFromToken } from '@/lib/auth';
+import { notifyUser } from '@/lib/push';
 
-const bodySchema = z.object({
+const actionSchema = z.object({
   action: z.enum(['approve', 'reject']),
-  reason: z.string().optional(), // Бас тарту себебі үшін
+  reason: z.string().optional(),
 });
 
-export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const guard = await requireAdmin(request);
-  if (guard) return guard;
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const authHeader = request.headers.get('authorization');
+  const token = authHeader?.split(' ')[1];
+  const session = await getSessionFromToken(token);
+
+  if (!session) {
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+  }
+
+  if (session.role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Forbidden: Admin access only' }, { status: 403 });
+  }
 
   const { id } = await params;
+
   try {
     const body = await request.json();
-    const parsed = bodySchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json({ error: 'Жарамсыз деректер', details: parsed.error.flatten() }, { status: 400 });
+    const validation = actionSchema.safeParse(body);
+
+    if (!validation.success) {
+      return NextResponse.json({ error: 'Жарамсыз деректер' }, { status: 400 });
+    }
+
+    const { action, reason } = validation.data;
+
+    if (action === 'reject' && !reason) {
+      return NextResponse.json({ error: 'Болдырмау себебін көрсету міндетті' }, { status: 400 });
     }
 
     const payment = await prisma.payment.findUnique({
       where: { id },
+      include: {
+        user: { select: { id: true, name: true } },
+        drama: { select: { id: true } },
+      },
     });
 
     if (!payment) {
-      return NextResponse.json({ error: 'Төлем табылмады', status: 404 });
+      return NextResponse.json({ error: 'Төлем табылмады' }, { status: 404 });
     }
 
-    if (payment.status !== 'PENDING') {
-      return NextResponse.json({ ok: true, alreadyHandled: true });
-    }
-
-    // we can get the admin user from the guard or a separate call
-    // for now, use a placeholder or check the current admin user
-    const adminId = 'ADMIN';
-
-    if (parsed.data.action === 'reject') {
-      const reason = parsed.data.reason;
-      if (!reason || reason.trim().length === 0) {
-        return NextResponse.json({ error: 'Бас тарту себебі міндетті' }, { status: 400 });
-      }
-
-      await prisma.payment.update({
-        where: { id },
-        data: {
-          status: 'REJECTED',
-          rejectReason: reason,
-          reviewedAt: new Date(),
-          reviewedBy: adminId,
-        }
-      });
-
-      await prisma.notification.create({
-        data: {
-          userId: payment.userId,
-          title: 'Төлем қабылданбады',
-          body: `Сіздің төлеміңіз қабылданбады. Себебі: ${reason}`,
-          type: 'PAYMENT',
-        }
-      });
-
-      await sendPushNotification(
-        payment.userId,
-        'Төлем қабылданбады',
-        `Сіздің төлеміңіз қабылданбады. Себебі: ${reason}`,
-        { type: 'PAYMENT_REJECTED', paymentId: id }
-      );
-
-      return NextResponse.json({ ok: true });
-    }
-
-    // approve
-    await prisma.$transaction(async (tx) => {
-      await tx.payment.update({
-        where: { id },
-        data: {
-          status: 'APPROVED',
-          reviewedAt: new Date(),
-          reviewedBy: adminId,
-        }
-      });
-
-      if (payment.type === 'SINGLE_EPISODE') {
-        if (payment.episodeNumber == null) {
-          throw new Error('SINGLE_EPISODE үшін episodeNumber жоқ');
-        }
-        const episodeNumber: number = payment.episodeNumber;
-        await tx.unlockedContent.upsert({
-          where: {
-            userId_dramaId_episodeNumber: {
-              userId: payment.userId,
-              dramaId: payment.dramaId,
-              episodeNumber,
-            },
-          },
-          create: {
+    if (action === 'approve') {
+      // Unlock content for the user
+      await prisma.unlockedContent.upsert({
+        where: {
+          userId_dramaId_episodeNumber: {
             userId: payment.userId,
             dramaId: payment.dramaId,
-            episodeNumber,
+            episodeNumber: payment.episodeNumber, // null if FULL_PACKAGE
           },
-          update: {},
-        });
-      } else {
-        // FULL_PACKAGE — дораманың барлық эпизодтарын ашамыз
-        const episodes = await tx.episode.findMany({
-          where: { dramaId: payment.dramaId },
-          select: { episodeNumber: true },
-        });
-        for (const ep of episodes) {
-          await tx.unlockedContent.upsert({
-            where: {
-              userId_dramaId_episodeNumber: {
-                userId: payment.userId,
-                dramaId: payment.dramaId,
-                episodeNumber: ep.episodeNumber,
-              },
-            },
-            create: {
-              userId: payment.userId,
-              dramaId: payment.dramaId,
-              episodeNumber: ep.episodeNumber,
-            },
-            update: {},
-          });
-        }
-      }
-    });
+        },
+        update: {},
+        create: {
+          userId: payment.userId,
+          dramaId: payment.dramaId,
+          episodeNumber: payment.episodeNumber,
+        },
+      });
 
-    // Notify User about approval
-    await prisma.notification.create({
+      // Notify user of approval
+      await notifyUser(payment.userId, {
+        title: 'Төлем расталды',
+        body: 'Төлемің расталды, эпизод ашылды',
+        data: { type: 'payment', status: 'APPROVED' }
+      });
+    }
+
+    await prisma.payment.update({
+      where: { id },
       data: {
-        userId: payment.userId,
-        title: 'Төлем мақұлданды',
-        body: 'Сіздің төлеміңіз сәтті расталды. Енді контентті көре аласыз!',
-        type: 'PAYMENT',
-      }
+        status: action === 'approve' ? 'APPROVED' : 'REJECTED',
+        rejectReason: action === 'reject' ? reason : null,
+        reviewedBy: session.userId,
+        reviewedAt: new Date(),
+      },
     });
 
-    await sendPushNotification(
-      payment.userId,
-      'Төлем мақұлданды ✅',
-      'Сіздің төлеміңіз сәтті расталды. Енді контентті көре аласыз!',
-      { type: 'PAYMENT_APPROVED', paymentId: id }
-    );
+    if (action === 'reject') {
+      // Notify user of rejection
+      await notifyUser(payment.userId, {
+        title: 'Төлем қабылданбады',
+        body: `Төлем қабылданбады: ${reason}`,
+        data: { type: 'payment', status: 'REJECTED' }
+      });
+    }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, message: `Payment ${action === 'approve' ? 'approved' : 'rejected'}` });
   } catch (err) {
-    console.error('PATCH admin payments error:', err);
+    console.error('PATCH /api/admin/payments/[id] error:', err);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }

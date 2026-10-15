@@ -231,6 +231,7 @@ export default function ProfileScreen() {
           </View>
         ) : null}
 
+// ... (lines 140-160 remain same)
         {/* Info */}
         <View className="mt-5 rounded-2xl border border-white/10 p-4" style={{ backgroundColor: "rgba(255,255,255,0.02)" }}>
           <Text className="text-sm font-semibold text-white mb-1">Қалай жұмыс істейді?</Text>
@@ -240,6 +241,26 @@ export default function ProfileScreen() {
             · Адміністратор чекті растағанда — серия ашылады
           </Text>
         </View>
+
+        {/* My Payments Link */}
+        <Pressable
+          onPress={() => router.push("/payments")}
+          className="mt-4 h-14 rounded-2xl flex-row items-center justify-center gap-3 border border-white/10 bg-white/5"
+        >
+          <Wallet size={18} color="#ec4899" />
+          <Text className="text-sm font-semibold text-white">Менің төлемдерім</Text>
+        </Pressable>
+
+        {/* Logout */}
+        <Pressable
+          onPress={onLogout}
+          className="mt-5 h-12 rounded-2xl flex-row items-center justify-center gap-2 border"
+          style={{ backgroundColor: "rgba(239,68,68,0.10)", borderColor: "rgba(239,68,68,0.30)" }}
+        >
+          <LogOut size={16} color="#fda4af" />
+          <Text className="text-sm font-semibold text-red-300">Шығу</Text>
+        </Pressable>
+// ... (rest of file)
 
         {/* Logout */}
         <Pressable

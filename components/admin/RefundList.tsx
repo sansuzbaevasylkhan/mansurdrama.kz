@@ -38,13 +38,13 @@ export function RefundList() {
     fetchRefunds();
   }, [fetchRefunds]);
 
-  const handleAction = async (id: string, status: 'APPROVED' | 'REJECTED') => {
+  const handleAction = async (id: string, action: 'approve' | 'reject') => {
     setBusyId(id);
     try {
       const res = await fetch(`/api/admin/refunds/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status, adminComment: comment }),
+        body: JSON.stringify({ action, adminNote: comment }),
       });
       if (!res.ok) throw new Error('Әрекет орындалмады');
       setComment('');
@@ -61,6 +61,12 @@ export function RefundList() {
 
   return (
     <div className="space-y-4">
+      <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 mb-4">
+        <div className="flex items-center gap-2 text-blue-400">
+          <AlertCircle className="h-4 w-4" />
+          <span className="text-xs font-medium">Мақұлданғанда қолжетімділік автоматты түрде жойылады. Ақшаны қолмен қайтаруды ұмытпаңыз.</span>
+        </div>
+      </div>
       <div className="grid gap-3">
         {refunds.map((refund) => (
           <motion.div
@@ -78,8 +84,11 @@ export function RefundList() {
                   {refund.status}
                 </span>
               </div>
-              <p className="text-sm text-white font-medium">Себебі: {refund.reason}</p>
-              <p className="text-xs text-white/50">Күні: {new Date(refund.createdAt).toLocaleString('kk-KZ')}</p>
+              <div className="flex flex-col gap-1">
+                <p className="text-sm text-white font-medium">Пайдаланушы: {refund.userId}</p>
+                <p className="text-sm text-white font-medium">Себебі: {refund.reason}</p>
+                <p className="text-xs text-white/50">Күні: {new Date(refund.createdAt).toLocaleString('kk-KZ')}</p>
+              </div>
             </div>
 
             <div className="flex items-center gap-3 w-full md:w-auto">
@@ -91,14 +100,14 @@ export function RefundList() {
                 onChange={(e) => setComment(e.target.value)}
               />
               <button
-                onClick={() => handleAction(refund.id, 'APPROVED')}
+                onClick={() => handleAction(refund.id, 'approve')}
                 disabled={busyId === refund.id || refund.status !== 'PENDING'}
                 className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 disabled:opacity-30 transition"
               >
                 <Check className="h-4 w-4" />
               </button>
               <button
-                onClick={() => handleAction(refund.id, 'REJECTED')}
+                onClick={() => handleAction(refund.id, 'reject')}
                 disabled={busyId === refund.id || refund.status !== 'PENDING'}
                 className="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 disabled:opacity-30 transition"
               >

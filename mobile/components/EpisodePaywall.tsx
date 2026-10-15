@@ -12,6 +12,7 @@ interface Tariff {
   name: string;
   price: number;
   type: string;
+  discountPercent?: number;
 }
 
 const KASPI_NUMBER = "+7 776 010 9510";
@@ -44,6 +45,12 @@ export function EpisodePaywall({
   const [tariffs, setTariffs] = useState<Tariff[]>([]);
   const [selectedTariff, setSelectedTariff] = useState<Tariff | null>(null);
   const [fetchingTariffs, setFetchingTariffs] = useState(true);
+  const [upgradeInfo, setUpgradeInfo] = useState<{
+    remainingPrice: number;
+    previousPaymentId: string;
+    originalPrice: number;
+    deductedAmount: number;
+  } | null>(null);
 
   useEffect(() => {
     async function loadTariffs() {
@@ -61,6 +68,34 @@ export function EpisodePaywall({
     }
     loadTariffs();
   }, []);
+
+  useEffect(() => {
+    async function checkUpgrade() {
+      if (!selectedTariff || !isAuthenticated) return;
+      try {
+        // Call the upgrade-price API
+        const res = await fetch(
+          `${process.env.EXPO_PUBLIC_API_URL}/api/tariffs/upgrade-price?dramaId=${dramaId}&toTariffId=${selectedTariff.id}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            },
+          }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (data.deductedAmount > 0) {
+            setUpgradeInfo(data);
+          } else {
+            setUpgradeInfo(null);
+          }
+        }
+      } catch (e) {
+        console.error("Upgrade check error:", e);
+      }
+    }
+    checkUpgrade();
+  }, [selectedTariff, isAuthenticated, dramaId]);
 
   const pickReceipt = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -97,7 +132,17 @@ export function EpisodePaywall({
       fd.append("phone", phone);
       fd.append("dramaId", dramaId);
       fd.append("type", selectedTariff.type);
-      fd.append("amount", String(selectedTariff.price));
+
+      // Use upgrade price if available, otherwise fallback to discount logic
+      let finalPrice = selectedTariff.price;
+      if (upgradeInfo) {
+        finalPrice = upgradeInfo.remainingPrice;
+        fd.append("upgradeFromPaymentId", upgradeInfo.previousPaymentId);
+      } else if (selectedTariff.discountPercent && selectedTariff.discountPercent > 0) {
+        finalPrice = Math.floor(selectedTariff.price * (1 - selectedTariff.discountPercent / 100));
+      }
+
+      fd.append("amount", String(finalPrice));
       if (selectedTariff.type === "SINGLE_EPISODE") fd.append("episodeNumber", String(episodeNumber));
       // @ts-expect-error RN FormData accepts blob-like
       fd.append("receipt", {
@@ -168,13 +213,19 @@ export function EpisodePaywall({
             </View>
           )}
 
-          <View className="mt-3 rounded-xl border border-white/10 bg-white/[0.02] p-3">
-            <Text className="text-xs text-white/60">Kaspi нөмірі</Text>
-            <Text className="mt-1 text-base font-bold text-white">{KASPI_NUMBER}</Text>
-            <Text className="mt-1 text-[11px] text-white/50">
-              Көрсетілген соманы жіберіп, чек скриншотын жүктеңіз.
-            </Text>
-          </View>
+            <View className="mt-3 rounded-xl border border-white/10 bg-white/[0.02] p-3">
+              <Text className="text-xs text-white/60">Kaspi нөмірі</Text>
+              <Text className="mt-1 text-base font-bold text-white">{KASPI_NUMBER}</Text>
+              {upgradeInfo ? (
+                <Text className="mt-1 text-xs text-emerald-400 font-medium">
+                  Толық пакетке өту: {upgradeInfo.originalPrice}₸ орнына {upgradeInfo.remainingPrice}₸ ({upgradeInfo.deductedAmount}₸ шегерілді)
+                </Text>
+              ) : (
+                <Text className="mt-1 text-[11px] text-white/50">
+                  Көрсетілген соманы жіберіп, чек скриншотын жүктеңіз.
+                </Text>
+              )}
+            </View>
 
           <View className="mt-3 gap-3">
             <FormField

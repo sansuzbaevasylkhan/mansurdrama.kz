@@ -3,7 +3,7 @@ import { useLocalSearchParams, Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
-import { ArrowLeft, Star, Eye, Film, Play, LayoutGrid } from "lucide-react-native";
+import { ArrowLeft, Star, Eye, Film, Play, LayoutGrid, Heart } from "lucide-react-native";
 import { dramasApi } from "@/lib/endpoints";
 import type { Drama, Episode } from "@/lib/types";
 import { formatNumber } from "@/lib/utils";
@@ -21,6 +21,7 @@ export default function DramaPage() {
   const [loading, setLoading] = useState(true);
   const [unlocked, setUnlocked] = useState<Set<number>>(new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]));
   const [isSheetVisible, setIsSheetVisible] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
 
   useEffect(() => {
     if (!slug) return;
@@ -61,6 +62,39 @@ export default function DramaPage() {
       }
     })();
   }, [slug, user]);
+
+  const toggleFavorite = async () => {
+    if (!user) {
+      Alert.alert("Кіру қажет", "Таңдаулылар тізіміне қосу үшін аккаунтқа кіріңіз.");
+      return;
+    }
+
+    try {
+      const method = isFavorite ? 'DELETE' : 'POST';
+      const url = method === 'DELETE'
+        ? `${process.env.EXPO_PUBLIC_API_URL}/api/favorites?dramaId=${drama?.id}`
+        : `${process.env.EXPO_PUBLIC_API_URL}/api/favorites`;
+
+      const body = method === 'POST' ? JSON.stringify({ userId: user.id, dramaId: drama?.id }) : undefined;
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body
+      });
+
+      if (res.ok) {
+        setIsFavorite(!isFavorite);
+      } else {
+        throw new Error();
+      }
+    } catch (e) {
+      Alert.alert("Қате", "Әрекет орындалмады");
+    }
+  };
 
   if (loading) {
     return (
@@ -131,7 +165,21 @@ export default function DramaPage() {
             )}
           </View>
           <View className="flex-1">
-            <Text className="text-2xl font-extrabold text-white">{drama.title}</Text>
+            <View className="flex-row justify-between items-start">
+              <Text className="text-2xl font-extrabold text-white flex-1" lineNumber={2}>
+                {drama.title}
+              </Text>
+              <Pressable
+                onPress={toggleFavorite}
+                className="ml-2 p-2 rounded-full bg-white/5"
+              >
+                <Heart
+                  size={24}
+                  color={isFavorite ? "#ef4444" : "#fff"}
+                  fill={isFavorite ? "#ef4444" : "transparent"}
+                />
+              </Pressable>
+            </View>
             <View className="mt-2 flex-row flex-wrap gap-2">
               <Badge icon={<Film size={12} color="#fff" />}>
                 {drama.totalEpisodes} бөлім
@@ -180,7 +228,7 @@ export default function DramaPage() {
                       userEmail={user?.email}
                       userName={user?.name}
                       onUnlocked={() => {
-                        setUnlocked((s) => new Set(s).add(ep.episodeNumber));
+                        setUnlocked((s) => new Set(s).add(ep.// episodeNumber));
                       }}
                     />
                   );
@@ -194,7 +242,7 @@ export default function DramaPage() {
                         params: {
                           episodeId: ep.id,
                           dramaId: drama.id,
-                          videoUrl: ep.videoUrl,
+                          videoUrl: ep.videoLurl,
                           posterUrl: drama.posterUrl,
                           title: drama.title,
                           subtitle: ep.title,
@@ -230,6 +278,23 @@ export default function DramaPage() {
         isVisible={isSheetVisible}
         title={drama.title}
         poster={drama.posterUrl}
+        totalEpisodes={drama.totalEpisodes}
+        onClose={() => setIsSheetVisible(false)}
+        onSelect={handleSelectEpisode}
+      />
+    </View>
+  );
+}
+
+function Badge({ children, icon }: { children: React.ReactNode; icon?: React.ReactNode }) {
+  return (
+    <View className="flex-row items-center gap-1 rounded-full bg-white/5 border border-white/10 px-2.5 py-0.5">
+      {icon}
+      <Text className="text-xs text-white/70">{children}</Text>
+    </View>
+  );
+}
+posterUrl}
         totalEpisodes={drama.totalEpisodes}
         onClose={() => setIsSheetVisible(false)}
         onSelect={handleSelectEpisode}

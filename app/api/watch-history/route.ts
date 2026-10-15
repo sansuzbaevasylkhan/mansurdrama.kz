@@ -43,6 +43,48 @@ export async function POST(request: NextRequest) {
 
   try {
     const row = await upsertWatchHistory({ userId, ...parsed.data });
+
+    // Trigger "Free Episodes Ended" notification
+    // Logic: episode 10, > 90% completed, not yet notified, promos enabled
+    if (parsed.data.episodeId) {
+      const episode = await prisma.episode.findUnique({
+        where: { id: parsed.data.episodeId },
+        select: { episodeNumber: true, dramaId: true },
+      });
+
+      if (episode && episode.episodeNumber === 10) {
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { freeEndedNotifiedAt: true },
+        });
+
+        const settings = await prisma.notificationSetting.findUnique({
+          where: { userId },
+          select: { promos: true },
+        });
+
+        const isNearlyCompleted = parsed.data.durationSeconds > 0 &&
+          (parsed.data.positionSeconds / parsed.data.durationSeconds) >= 0.9;
+
+        if (
+          isNearlyCompleted &&
+          !user?.freeEndedNotifiedAt &&
+          settings?.promos !== false
+        ) {
+          await notifyUser(userId, {
+            title: 'Тегін эпизодтар аяқталды!',
+            body: '24 сағат ішінде жеңілдікпен ашыңыз',
+            data: { type: 'promo', trigger: 'free_ended' },
+          }, 'promos');
+
+          await prisma.user.update({
+            where: { id: userId },
+            data: { freeEndedNotifiedAt: new Date() },
+          });
+        }
+      }
+    }
+
     return NextResponse.json(row);
   } catch (err) {
     console.error('POST /api/watch-history error:', err);

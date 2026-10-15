@@ -75,12 +75,13 @@ export default function WatchScreen() {
       .catch(() => {});
   };
 
+// ... (lines 1-77 remain same)
   useEffect(() => {
-    // Auto-save progress every 10 seconds
+    // Auto-save progress every 15 seconds
     const interval = setInterval(() => {
       if (player.playing && player.duration > 0) {
         const now = Date.now();
-        if (now - lastSavedAt.current > 10000) {
+        if (now - lastSavedAt.current > 15000) {
           saveProgress(player.currentTime, player.duration);
           lastSavedAt.current = now;
         }
@@ -94,6 +95,7 @@ export default function WatchScreen() {
       }
     };
   }, [user, params.episodeId, params.dramaId, player]);
+// ... (rest of file)
 
   useEffect(() => {
     hideTimer.current = setTimeout(() => setShowControls(false), 3000);

@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import "../global.css";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -13,6 +13,8 @@ import { AuthProvider } from '@/context/AuthContext';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
+import { ForceUpdateScreen } from '@/components/ForceUpdateScreen';
 
 // Configure how notifications are handled when the app is foregrounded
 Notifications.setNotificationHandler({
@@ -60,8 +62,32 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 
 export default function RootLayout() {
   const { isConnected } = useNetwork();
+  const [forceUpdate, setForceUpdate] = useState<{
+    show: boolean;
+    message: string;
+    storeUrl: string;
+  } | null>(null);
 
   useEffect(() => {
+    async function checkVersion() {
+      try {
+        const currentVersion = Constants.expoConfig?.version || "1.0.0";
+        const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/app-version?version=${currentVersion}`);
+        const data = await res.json();
+
+        if (data.forceUpdate) {
+          setForceUpdate({
+            show: true,
+            message: data.message,
+            storeUrl: data.storeUrl,
+          });
+        }
+      } catch (e) {
+        console.error("Version check failed:", e);
+        // Do not block the app on network error
+      }
+    }
+    checkVersion();
     // 1. Prevent screenshots and screen recording
     try {
       if (ScreenCapture && typeof ScreenCapture.preventScreenCaptureAsync === 'function') {
@@ -114,6 +140,7 @@ export default function RootLayout() {
                 contentStyle: { backgroundColor: "#0a0a10" },
               }}
             />
+            {forceUpdate && <ForceUpdateScreen message={forceUpdate.message} storeUrl={forceUpdate.storeUrl} />}
           </>
         </ErrorBoundary>
       </AuthProvider>

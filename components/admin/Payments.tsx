@@ -81,6 +81,8 @@ export function Payments() {
   const [rows, setRows] = React.useState<PaymentRow[] | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [busyId, setBusyId] = React.useState<string | null>(null);
+  const [rejectingId, setRejectingId] = React.useState<string | null>(null);
+  const [rejectReason, setRejectReason] = React.useState('');
   const pollRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchPending = React.useCallback(async (silent = false) => {
@@ -104,23 +106,63 @@ export function Payments() {
   }, [fetchPending]);
 
   const handleAction = async (id: string, action: 'confirm' | 'reject') => {
+    if (action === 'reject') {
+      setRejectingId(id);
+      return;
+    }
+
     setBusyId(id);
     const prevRows = rows;
-    // Optimistic update — remove from list immediately
     setRows((r) => (r ? r.filter((row) => row.id !== id) : r));
     try {
-      const res = await fetch(`/api/payments/${id}`, {
+      const authHeader = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const res = await fetch(`/api/admin/payments/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authHeader}`
+        },
+        body: JSON.stringify({
+          status: action === 'confirm' ? 'APPROVED' : 'REJECTED'
+        }),
       });
       if (!res.ok) throw new Error('Серверде қате шықты');
     } catch (e) {
-      // Revert on failure
       setRows(prevRows);
       setError(e instanceof Error ? e.message : 'Әрекет орындалмады');
     } finally {
       setBusyId(null);
+    }
+  };
+
+  const submitReject = async () => {
+    if (!rejectingId) return;
+
+    setBusyId(rejectingId);
+    const prevRows = rows;
+    setRows((r) => (r ? r.filter((row) => row.id !== rejectingId) : r));
+
+    try {
+      const authHeader = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const res = await fetch(`/api/admin/payments/${rejectingId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authHeader}`
+        },
+        body: JSON.stringify({
+          status: 'REJECTED',
+          rejectReason: rejectReason || 'Себебі көрстілмеді'
+        }),
+      });
+      if (!res.ok) throw new Error('Серверде қате шықты');
+    } catch (e) {
+      setRows(prevRows);
+      setError(e instanceof Error ? e.message : 'Әрекет орындалмады');
+    } finally {
+      setBusyId(null);
+      setRejectingId(null);
+      setRejectReason('');
     }
   };
 
@@ -251,6 +293,69 @@ export function Payments() {
           </AnimatePresence>
         </div>
       )}
+
+      {/* Reject Reason Modal */}
+      <AnimatePresence>
+        {rejectingId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md rounded-3xl border border-white/10 bg-zinc-900 p-6 shadow-2xl"
+            >
+              <h2 className="text-xl font-bold text-white mb-2">Болдырмау себебі</h2>
+              <p className="text-sm text-white/50 mb-6">Төлемді қабылдамау себебін көрсетіңіз</p>
+
+              <div className="grid grid-cols-1 gap-2 mb-6">
+                {['Чек анық емес', 'Сома дұрыс емес', 'Басқа'].map((reason) => (
+                  <button
+                    key={reason}
+                    onClick={() => setRejectReason(reason)}
+                    className={cn(
+                      'text-left px-4 py-3 rounded-xl text-sm transition',
+                      rejectReason === reason
+                        ? 'bg-primary-500 text-white'
+                        : 'bg-white/5 text-white/70 hover:bg-white/10'
+                    )}
+                  >
+                    {reason}
+                  </button>
+                ))}
+              </div>
+
+              <div className="mb-6">
+                <textarea
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  placeholder="Себебін жазыңыз..."
+                  className="w-full h-24 rounded-xl bg-white/5 border border-white/10 p-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-primary-500 transition"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setRejectingId(null);
+                    setRejectReason('');
+                  }}
+                  className="px-4 py-2 rounded-xl text-sm font-medium text-white/50 hover:text-white transition"
+                >
+                  Болдырмау
+                </button>
+                <button
+                  onClick={submitReject}
+                  disabled={busyId === rejectingId}
+                  className="px-6 py-2 rounded-xl text-sm font-medium bg-red-500 text-white hover:bg-red-600 transition disabled:opacity-50 flex items-center gap-2"
+                >
+                  {busyId === rejectingId && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  Растау
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

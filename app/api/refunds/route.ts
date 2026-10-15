@@ -21,8 +21,21 @@ export async function POST(request: NextRequest) {
       where: { paymentId },
     });
 
-    if (existingRefund) {
-      return NextResponse.json({ error: "Бұл төлем бойынша өтініш бұрын жіберілген" }, { status: 400 });
+    if (existingRefund && existingRefund.status === "PENDING") {
+      return NextResponse.json({ error: "Бұл төлем бойынша қаралып жатқан өтініш бар" }, { status: 400 });
+    }
+
+    // Verify payment exists and is APPROVED
+    const payment = await prisma.payment.findUnique({
+      where: { id: paymentId },
+    });
+
+    if (!payment) {
+      return NextResponse.json({ error: "Төлем табылмады" }, { status: 404 });
+    }
+
+    if (payment.status !== "APPROVED") {
+      return NextResponse.json({ error: "Тек мақұлданған төлемдерді қайтаруға болады" }, { status: 400 });
     }
 
     const refund = await prisma.refundRequest.create({

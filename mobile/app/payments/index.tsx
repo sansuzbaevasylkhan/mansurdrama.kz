@@ -1,159 +1,199 @@
-import { useEffect, useState } from "react";
-import { View, Text, Pressable, ActivityIndicator, Alert, ScrollView, Image } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, Text, Pressable, ScrollView, Image, Alert, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { Upload, RefreshCcw, ChevronRight } from "lucide-react-native";
-import { paymentsApi } from "@/lib/endpoints";
+import { FileText, Clock, CheckCircle, XCircle, AlertCircle, Loader2 } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
-import { Button } from "@/components/ui/Button";
+
+type PaymentStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 interface Payment {
   id: string;
-  status: "PENDING" | "APPROVED" | "REJECTED";
+  status: PaymentStatus;
+  rejectReason: string | null;
   createdAt: string;
-  drama: { title: string };
-  tariff: { name: string; price: number };
-  rejectReason?: string | null;
+  tariffName: string;
+  dramaTitle: string;
+  amount: number;
+  refundStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+  refundComment?: string | null;
 }
 
 export default function PaymentsScreen() {
-  const router = useRouter();
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  const loadPayments = async () => {
-    try {
-      const res = await paymentsApi.my();
-      setPayments(res.payments || []);
-    } catch (e) {
-      Alert.alert("Қате", "Төлемдерді жүктеу мүмкін болмады");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      loadPayments();
-    }
-  }, [isAuthenticated]);
+    fetchPayments();
+  }, []);
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadPayments();
+  async function fetchPayments() {
+    try {
+      const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/payments`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}` // Replace with proper auth storage if needed
+        }
+      });
+      const data = await res.json();
+      if (data.payments) {
+        setPayments(data.payments);
+      }
+    } catch (e) {
+      console.error("Payments fetch error:", e);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function requestRefund(paymentId: string) {
+    Alert.prompt(
+      "Төлемді қайтару",
+      "Қайтару себебін жазыңыз",
+      async (reason) => {
+        if (!reason) return;
+
+        try {
+          const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/refunds`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({ paymentId, reason })
+          });
+
+          if (res.ok) {
+            Alert.alert("Сәтті", "Қайтару өтініші жіберілді. Әкімші қарап, жауап береді.");
+            fetchPayments();
+          } else {
+            const err = await res.json();
+            Alert.alert("Қате", err.error || "Өтініш жіберілмеді");
+          }
+        } catch (e) {
+          Alert.alert("Қате", "Сервермен байланыс үзілді");
+        }
+      }
+    );
+  }
+
+  const getStatusBadge = (status: PaymentStatus) => {
+    switch (status) {
+      case 'PENDING':
+        return { text: 'Тексерілуде', color: 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30' };
+      case 'APPROVED':
+        return { text: 'Расталды', color: 'bg-emerald-500/20 text-emerald-500 border-emerald-500/30' };
+      case 'REJECTED':
+        return { text: 'Қабылданбады', color: 'bg-red-500/20 text-red-500 border-red-500/30' };
+    }
   };
 
-  if (!isAuthenticated) {
-    return (
-      <SafeAreaView className="flex-1 bg-[#0A0A0F] items-center justify-center px-6">
-        <Text className="text-white/60 text-center mb-4">Төлемдерді көру үшін кіру қажет</Text>
-        <Button title="Кіру" onPress={() => router.push("/auth/login")} />
-      </SafeAreaView>
-    );
-  }
-
-  if (loading) {
-    return (
-      <SafeAreaView className="flex-1 bg-[#0A0A0F] items-center justify-center">
-        <ActivityIndicator size="large" color="#ec4899" />
-      </SafeAreaView>
-    );
-  }
+  if (!isAuthenticated) return null;
 
   return (
     <SafeAreaView className="flex-1 bg-dark-950" edges={["top"]}>
-      <ScrollView
-        contentContainerClassName="px-4 pt-3 pb-24"
-        refreshControl={
-          <RefreshCcw
-            onRefresh={onRefresh}
-            refreshing={refreshing}
-            color="#ec4899"
-          />
-        }
-      >
-        <Text className="text-xl font-bold text-white mb-4">Төлем тарихы</Text>
+      <ScrollView contentContainerClassName="px-4 pt-6 pb-10">
+        <Text className="text-2xl font-bold text-white mb-6">Менің төлемдерім</Text>
 
-        {payments.length === 0 ? (
+        {loading ? (
           <View className="flex-1 items-center justify-center py-20">
-            <Text className="text-white/40 text-center">Төлемдер табылмады</Text>
+            <ActivityIndicator size="large" color="#ec4899" />
+            <Text className="text-white/50 mt-4">Жүктелуде...</Text>
+          </View>
+        ) : payments.length === 0 ? (
+          <View className="flex-1 items-center justify-center py-20">
+            <FileText size={48} color="rgba(255,255,255,0.1)" />
+            <Text className="text-white/40 mt-4 text-center">Төлемдер табылмады</Text>
           </View>
         ) : (
-          <View className="gap-3">
-            {payments.map((p) => (
-              <PaymentCard
-                key={p.id}
-                payment={p}
-                onResubmit={() => router.push({
-                  pathname: "/payments/resubmit",
-                  params: { paymentId: p.id }
-                })}
-              />
-            ))}
+          <View className="gap-4">
+            {payments.map((p) => {
+              const badge = getStatusBadge(p.status);
+              return (
+                <View
+                  key={p.id}
+                  className="p-4 rounded-2xl border border-white/10 bg-white/5"
+                >
+                  <View className="flex-row justify-between items-start mb-3">
+                    <View className="flex-1">
+                      <Text className="text-white font-semibold text-base" numberOfLines={1}>
+                        {p.dramaTitle}
+                      </Text>
+                      <Text className="text-white/50 text-xs mt-1">
+                        {p.tariffName} · {p.amount} ₸
+                      </Text>
+                    </View>
+                    <View className={`px-2 py-1 rounded-md border ${badge.color}`}>
+                      <Text className="text-[10px] font-bold uppercase">{badge.text}</Text>
+                    </View>
+                  </View>
+
+                  <View className="flex-row items-center gap-2 mb-3">
+                    <Clock size={12} color="rgba(255,255,255,0.3)" />
+                    <Text className="text-white/40 text-[11px]">
+                      {new Date(p.createdAt).toLocaleDateString('kk-KZ')}
+                    </Text>
+                  </View>
+
+                  {p.status === 'REJECTED' && p.rejectReason && (
+                    <View className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 mb-3">
+                      <View className="flex-row items-center gap-2 mb-1">
+                        <AlertCircle size={14} color="#ef4444" />
+                        <Text className="text-red-400 text-xs font-bold">Қабылдамау себебі:</Text>
+                      </View>
+                      <Text className="text-red-300/80 text-xs leading-4">
+                        {p.rejectReason}
+                      </Text>
+                    </View>
+                  )}
+
+                  {p.refundStatus && (
+                    <View className={`p-3 rounded-xl border mb-3 ${
+                      p.refundStatus === 'PENDING' ? 'bg-yellow-500/10 border-yellow-500/20' :
+                      p.refundStatus === 'APPROVED' ? 'bg-emerald-500/10 border-emerald-500/20' :
+                      'bg-red-500/10 border-red-500/20'
+                    }`}>
+                      <View className="flex-row items-center gap-2 mb-1">
+                        <Clock size={14} color="rgba(255,255,255,0.7)" />
+                        <Text className="text-white/80 text-xs font-bold">
+                          Қайтару мәртебесі: {
+                            p.refundStatus === 'PENDING' ? 'Қаралуда' :
+                            p.refundStatus === 'APPROVED' ? 'Мақұлданды' : 'Қабылданбады'
+                          }
+                        </Text>
+                      </View>
+                      {p.refundComment && (
+                        <Text className="text-white/60 text-xs leading-4">
+                          {p.refundComment}
+                        </Text>
+                      )}
+                    </View>
+                  )}
+
+                  {p.status === 'REJECTED' && (
+                    <Pressable
+                      onPress={() => handleReupload(p.id)}
+                      className="w-full py-3 rounded-xl bg-white/10 border border-white/20 items-center"
+                    >
+                      <Text className="text-white text-xs font-semibold">Чекті қайта жүктеу</Text>
+                    </Pressable>
+                  )}
+
+                  {p.status === 'APPROVED' && !p.refundStatus && (
+                    <Pressable
+                      onPress={() => requestRefund(p.id)}
+                      className="w-full py-3 rounded-xl bg-rose-500/20 border border-rose-500/30 items-center"
+                    >
+                      <Text className="text-rose-300 text-xs font-semibold">Төлемді қайтаруды сұрау</Text>
+                    </Pressable>
+                  )}
+                </View>
+              );
+            })}
           </View>
         )}
       </ScrollView>
     </SafeAreaView>
-  );
-}
-
-function PaymentCard({ payment, onResubmit }: { payment: Payment; onResubmit: () => void }) {
-  const isApproved = payment.status === "APPROVED";
-  const isPending = payment.status === "PENDING";
-  const isRejected = payment.status === "REJECTED";
-
-  const statusConfig = {
-    PENDING: { label: "Тексерілуде", color: "text-yellow-400", bg: "bg-yellow-400/10", border: "border-yellow-400/30" },
-    APPROVED: { label: "Расталды", color: "text-green-400", bg: "bg-green-400/10", border: "border-green-400/30" },
-    REJECTED: { label: "Қабылданбады", color: "text-red-400", bg: "bg-red-400/10", border: "border-red-400/30" },
-  };
-
-  const config = statusConfig[payment.status];
-
-  return (
-    <View className={`rounded-2xl border p-4 ${config.border} bg-white/[0.02]`}>
-      <View className="flex-row justify-between items-start mb-3">
-        <View className="flex-1">
-          <Text className="text-sm font-bold text-white" numberOfLines={1}>
-            {payment.drama.title}
-          </Text>
-          <Text className="text-xs text-white/50 mt-0.5">
-            {payment.tariff.name} • {payment.tariff.price} ₸
-          </Text>
-        </View>
-        <View className={`px-2 py-1 rounded-lg ${config.bg}`}>
-          <Text className={`text-[10px] font-bold ${config.color}`}>
-            {config.label}
-          </Text>
-        </View>
-      </View>
-
-      <View className="flex-row justify-between items-center">
-        <Text className="text-[11px] text-white/40">
-          {new Date(payment.createdAt).toLocaleDateString('kk-KZ')}
-        </Text>
-
-        {isRejected && (
-          <Pressable
-            onPress={onResubmit}
-            className="flex-row items-center gap-1"
-          >
-            <Upload size={12} color="#ec4899" />
-            <Text className="text-xs font-semibold text-pink-400">Қайта жіберу</Text>
-          </Pressable>
-        )}
-      </View>
-
-      {isRejected && payment.rejectReason && (
-        <View className="mt-3 p-2 rounded-lg bg-red-500/10 border border-red-500/20">
-          <Text className="text-xs text-red-300 leading-4">
-            Себебі: {payment.rejectReason}
-          </Text>
-        </View>
-      )}
-    </View>
   );
 }
