@@ -2,7 +2,7 @@
   "expo": {
     "name": "Mansur Drama",
     "slug": "mansurdrama-mobile",
-    "version": "1.2.2.2",
+    "version": "1.2.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "mansurdrama",
@@ -20,7 +20,7 @@
       "bundleIdentifier": "kz.asylkhansansuzbaev.mansurdrama.app"
     },
     "android": {
-      "versionCode": 11,
+      "versionCode": 12,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
