@@ -228,7 +228,7 @@ export default function DramaPage() {
                       userEmail={user?.email}
                       userName={user?.name}
                       onUnlocked={() => {
-                        setUnlocked((s) => new Set(s).add(ep.// episodeNumber));
+                        setUnlocked((s) => new Set(s).add(ep.episodeNumber));
                       }}
                     />
                   );
@@ -242,7 +242,7 @@ export default function DramaPage() {
                         params: {
                           episodeId: ep.id,
                           dramaId: drama.id,
-                          videoUrl: ep.videoLurl,
+                          videoUrl: ep.videoUrl,
                           posterUrl: drama.posterUrl,
                           title: drama.title,
                           subtitle: ep.title,
@@ -278,23 +278,6 @@ export default function DramaPage() {
         isVisible={isSheetVisible}
         title={drama.title}
         poster={drama.posterUrl}
-        totalEpisodes={drama.totalEpisodes}
-        onClose={() => setIsSheetVisible(false)}
-        onSelect={handleSelectEpisode}
-      />
-    </View>
-  );
-}
-
-function Badge({ children, icon }: { children: React.ReactNode; icon?: React.ReactNode }) {
-  return (
-    <View className="flex-row items-center gap-1 rounded-full bg-white/5 border border-white/10 px-2.5 py-0.5">
-      {icon}
-      <Text className="text-xs text-white/70">{children}</Text>
-    </View>
-  );
-}
-posterUrl}
         totalEpisodes={drama.totalEpisodes}
         onClose={() => setIsSheetVisible(false)}
         onSelect={handleSelectEpisode}
