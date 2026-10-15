@@ -20,7 +20,7 @@
       "bundleIdentifier": "kz.asylkhansansuzbaev.mansurdrama.app"
     },
     "android": {
-      "versionCode": 10,
+      "versionCode": 11,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
