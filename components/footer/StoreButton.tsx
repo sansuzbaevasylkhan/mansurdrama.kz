@@ -16,7 +16,7 @@ interface StoreButtonProps {
   delay: number;
 }
 
-export const StoreButton = ({ store, href, delay }: StoreButtonProps) => {
+const StoreButton = ({ store, href, delay }: StoreButtonProps) => {
   const isApple = store === 'apple';
 
   // Color constants

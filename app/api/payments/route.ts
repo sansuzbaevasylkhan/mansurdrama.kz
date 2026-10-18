@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
     const result = payments.map(p => ({
       id: p.id,
       status: p.status,
+      isUpgraded: p.isUpgraded,
       rejectReason: p.rejectReason,
       createdAt: p.createdAt,
       tariffName: p.tariff.name,
@@ -132,7 +133,7 @@ export async function POST(request: NextRequest) {
     if (upgradeFromPaymentId) {
       const prevPayment = await prisma.payment.findUnique({
         where: { id: upgradeFromPaymentId },
-        select: { userId: true, status: true, amount: true }
+        select: { userId: true, status: true, amount: true, isUpgraded: true }
       });
 
       if (!prevPayment || prevPayment.userId !== session.userId || prevPayment.status !== 'APPROVED' || prevPayment.isUpgraded) {

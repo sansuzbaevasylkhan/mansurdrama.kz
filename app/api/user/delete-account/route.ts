@@ -17,25 +17,18 @@ export async function DELETE(request: NextRequest) {
       }
     }
 
-    if (!userSession || !userSession.user) {
+    if (!userSession || !userSession.userId) {
       return NextResponse.json(
         { success: false, message: 'Сіз тіркелмегенсіз.' },
         { status: 401 }
       );
     }
 
-    const userEmail = userSession.user.email;
-
-    if (!userEmail) {
-      return NextResponse.json(
-        { success: false, message: 'Қолданушының электронды поштасы табылмады.' },
-        { status: 400 }
-      );
-    }
+    const currentUserId = userSession.userId;
 
     // 2. Қолданушыны табу
     const user = await prisma.user.findUnique({
-      where: { email: userEmail },
+      where: { id: currentUserId },
     });
 
     if (!user) {

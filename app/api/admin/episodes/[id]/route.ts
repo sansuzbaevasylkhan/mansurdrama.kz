@@ -3,12 +3,12 @@ import { requireAdmin } from "@/lib/api-guards";
 import { prisma } from "@/lib/prisma";
 import { sendBroadcastNotification } from "@/lib/notifications";
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const guard = await requireAdmin(request);
   if (guard) return guard;
 
   try {
-    const { id } = params;
+    const { id } = await params;
     const episode = await prisma.episode.update({
       where: { id },
       data: { status: "PUBLISHED" },

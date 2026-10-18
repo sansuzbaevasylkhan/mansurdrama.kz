@@ -3,12 +3,12 @@ import { requireAdmin } from "@/lib/api-guards";
 import { prisma } from "@/lib/prisma";
 import { notifyUser } from "@/lib/push";
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const guard = await requireAdmin(request);
   if (guard) return guard;
 
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     const { action, adminNote } = body;
 
@@ -67,7 +67,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
         body: `${action === "approve" ? "Сіздің төлеміңізді қайтару мақұлданды. Қолжетімділік жойылды." : "Өтінішіңіз қабылданбады."} ${adminNote || ''}`,
         data: { type: 'REFUND', status: newStatus }
       },
-      'payments'
+      'PAYMENTS'
     );
 
     return NextResponse.json({

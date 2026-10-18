@@ -19,7 +19,7 @@ import {
 
 import { cn } from '@/lib/utils';
 
-type Tab = 'dashboard' | 'dramas' | 'users' | 'payments' | 'tariffs' | 'scheduled' | 'refunds' | 'config';
+export type Tab = 'dashboard' | 'dramas' | 'users' | 'payments' | 'tariffs' | 'scheduled' | 'refunds' | 'config';
 
 interface SidebarProps {
   tab: Tab;

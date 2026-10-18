@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Sidebar } from '@/components/admin/Sidebar';
+import { Sidebar, type Tab } from '@/components/admin/Sidebar';
 import { DashboardHome } from '@/components/admin/DashboardHome';
 import { DramaManagement } from '@/components/admin/DramaManagement';
 import { UserManagement } from '@/components/admin/UserManagement';
@@ -11,8 +11,7 @@ import { TariffManagement } from '@/components/admin/TariffManagement';
 import { ToastProvider } from '@/components/ui/toast';
 import { Loader2 } from 'lucide-react';
 
-type Tab = 'dashboard' | 'dramas' | 'users' | 'payments' | 'tariffs';
-
+// Remove duplicate Tab declaration
 export default function AdminDashboardPage() {
   return (
     <ToastProvider>

@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { Settings, Cpu } from 'lucide-react';
-import { AppConfigManager } from '@/components/admin/AppConfigManager';
+import AppConfigManager from '@/components/admin/AppConfigManager';
 import { ToastProvider } from '@/components/ui/toast';
 
 export default function AdminConfigPage() {

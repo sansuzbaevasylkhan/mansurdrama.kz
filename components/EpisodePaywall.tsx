@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
@@ -15,12 +15,19 @@ interface EpisodePaywallProps {
   onClose?: () => void;
 }
 
+interface Tariff {
+  id: string;
+  name: string;
+  price: number;
+  description?: string;
+}
+
 export default function EpisodePaywall({ dramaId, userId, currentEpisode, freeEpisodesCount, onClose }: EpisodePaywallProps) {
-  const [tariffs, setTariffs] = useState([]);
-  const [selectedTariff, setSelectedTariff] = useState(null);
+  const [tariffs, setTariffs] = useState<Tariff[]>([]);
+  const [selectedTariff, setSelectedTariff] = useState<Tariff | null>(null);
   const [uploading, setUploading] = useState(false);
   const [hasStartedPayment, setHasStartedPayment] = useState(false);
-  const [receiptFile, setReceiptFile] = useState(null);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
 
   useEffect(() => {
     fetchTariffs();
@@ -150,7 +157,7 @@ export default function EpisodePaywall({ dramaId, userId, currentEpisode, freeEp
                     type="file"
                     accept="application/pdf"
                     className="absolute inset-0 opacity-0 cursor-pointer"
-                    onChange={(e) => setReceiptFile(e.target.files?.[0])}
+                    onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)}
                   />
                   <div className="space-y-2">
                     <p className="text-sm text-gray-500">

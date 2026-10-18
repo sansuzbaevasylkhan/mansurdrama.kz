@@ -1,5 +1,7 @@
 import { prisma } from '@/lib/prisma';
 
+export type NotificationType = 'SYSTEM' | 'PAYMENTS' | 'NEW_EPISODES' | 'PROMOS';
+
 interface PushData {
   title: string;
   body: string;
@@ -88,9 +90,9 @@ export async function notifyUser(userId: string, content: PushData, type: Notifi
     });
 
     if (settings) {
-      if (type === 'payments' && !settings.payments) return;
-      if (type === 'newEpisodes' && !settings.newEpisodes) return;
-      if (type === 'promos' && !settings.promos) return;
+      if (type === 'PAYMENTS' && !settings.payments) return;
+      if (type === 'NEW_EPISODES' && !settings.newEpisodes) return;
+      if (type === 'PROMOS' && !settings.promos) return;
     }
   }
 

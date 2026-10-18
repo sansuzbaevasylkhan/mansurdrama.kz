@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getSession, getSessionFromToken } from '@/lib/auth';
 import { upsertWatchHistory, getContinueWatching } from '@/lib/db';
+import { prisma } from '@/lib/prisma';
+import { notifyUser } from '@/lib/push';
 
 /**
  * Watch history — тек логин болған қолданушыларға қолжетімді (мобиль/веб).
@@ -75,7 +77,7 @@ export async function POST(request: NextRequest) {
             title: 'Тегін эпизодтар аяқталды!',
             body: '24 сағат ішінде жеңілдікпен ашыңыз',
             data: { type: 'promo', trigger: 'free_ended' },
-          }, 'promos');
+          }, 'PROMOS');
 
           await prisma.user.update({
             where: { id: userId },

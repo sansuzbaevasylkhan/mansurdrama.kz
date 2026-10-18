@@ -4,7 +4,7 @@ import { getAdminSession } from '@/lib/admin/auth';
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const isAdmin = await getAdminSession();
@@ -12,7 +12,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const id = params.id;
+    const { id } = await params;
     const body = await req.json();
     const { name, price, description, isActive, dramaIds, paymentPhone } = body;
 
@@ -51,14 +51,14 @@ export async function PATCH(
 
     return NextResponse.json(tariff);
   } catch (error) {
-    console.error(`PATCH /api/admin/tariffs/${params.id} error:`, error);
+    console.error(`PATCH /api/admin/tariffs/${(await params).id} error:`, error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const isAdmin = await getAdminSession();
@@ -66,14 +66,14 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const id = params.id;
+    const { id } = await params;
     await prisma.tariff.delete({
       where: { id },
     });
 
     return NextResponse.json({ message: 'Tariff deleted successfully' });
   } catch (error) {
-    console.error(`DELETE /api/admin/tariffs/${params.id} error:`, error);
+    console.error(`DELETE /api/admin/tariffs/${(await params).id} error:`, error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

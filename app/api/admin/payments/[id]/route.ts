@@ -60,7 +60,7 @@ export async function PATCH(
           userId_dramaId_episodeNumber: {
             userId: payment.userId,
             dramaId: payment.dramaId,
-            episodeNumber: payment.episodeNumber, // null if FULL_PACKAGE
+            episodeNumber: payment.episodeNumber as number, // Cast to number for Prisma unique constraint
           },
         },
         update: {},
@@ -76,7 +76,7 @@ export async function PATCH(
         title: 'Төлем расталды',
         body: 'Төлемің расталды, эпизод ашылды',
         data: { type: 'payment', status: 'APPROVED' }
-      });
+      }, 'PAYMENTS');
     }
 
     await prisma.payment.update({
@@ -95,7 +95,7 @@ export async function PATCH(
         title: 'Төлем қабылданбады',
         body: `Төлем қабылданбады: ${reason}`,
         data: { type: 'payment', status: 'REJECTED' }
-      });
+      }, 'PAYMENTS');
     }
 
     return NextResponse.json({ ok: true, message: `Payment ${action === 'approve' ? 'approved' : 'rejected'}` });

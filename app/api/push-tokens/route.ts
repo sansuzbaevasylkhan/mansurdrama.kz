@@ -17,9 +17,9 @@ export async function POST(request: NextRequest) {
     }
 
     const pushToken = await prisma.pushToken.upsert({
-      where: { userId: session.userId },
+      where: { token },
       update: {
-        token,
+        userId: session.userId,
         deviceType,
         updatedAt: new Date(),
       },

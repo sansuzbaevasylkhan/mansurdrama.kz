@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
             dramaId: episode.dramaId,
             episodeId: episode.id
           },
-        }, 'newEpisodes');
+        }, 'NEW_EPISODES');
         notificationCount++;
       }
 

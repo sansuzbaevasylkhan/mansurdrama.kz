@@ -112,6 +112,7 @@ model User {
   avatar            String?
   banner            String?
   passwordHash      String?
+  password           String?
   role              String   @default("USER")
   notifyNewEpisodes Boolean  @default(true)
   createdAt         DateTime @default(now())

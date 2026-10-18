@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/api-guards";
 import { prisma } from "@/lib/prisma";
 
-export async function GET() {
-  const request = new NextRequest(); // Mock request for guard
+export async function GET(request: NextRequest) {
   const guard = await requireAdmin(request);
+  if (guard) return guard;
   if (guard) return guard;
 
   try {
