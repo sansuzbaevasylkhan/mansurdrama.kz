@@ -53,13 +53,7 @@
       "expo-status-bar",
       "expo-video",
       "expo-audio",
-      "expo-font",
-      [
-        "@sentry/react-native",
-        {
-          "uploadSourceMaps": false
-        }
-      ]
+      "expo-font"
     ],
     "extra": {
       "router": {
