@@ -1,3 +1,4 @@
+
 {
   "expo": {
     "name": "Mansur Drama",
@@ -7,11 +8,6 @@
     "icon": "./assets/icon.png",
     "scheme": "mansurdrama",
     "userInterfaceStyle": "dark",
-    "splash": {
-      "image": "./assets/md.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0a0a10"
-    },
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -41,6 +37,15 @@
       "bundler": "metro"
     },
     "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/md.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#0a0a10"
+        }
+      ],
       "expo-router",
       "expo-web-browser",
       "expo-asset",
@@ -49,7 +54,12 @@
       "expo-video",
       "expo-audio",
       "expo-font",
-      "@sentry/react-native"
+      [
+        "@sentry/react-native",
+        {
+          "uploadSourceMaps": false
+        }
+      ]
     ],
     "extra": {
       "router": {
@@ -60,9 +70,9 @@
       "googleAndroidClientId": "",
       "googleIosClientId": "",
       "eas": {
-        "projectId": "3907d573-0c72-48af-ad39-7c21a7e97a71"
+        "projectId": "5d56a1aa-eb90-4289-a4c9-117d75d93bbf"
       }
     },
-    "owner": "asylkhansansuzba454478645"
+    "owner": "sansuzbaev856ghjk"
   }
 }
