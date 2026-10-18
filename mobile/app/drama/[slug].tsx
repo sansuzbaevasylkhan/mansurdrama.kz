@@ -166,7 +166,7 @@ export default function DramaPage() {
           </View>
           <View className="flex-1">
             <View className="flex-row justify-between items-start">
-              <Text className="text-2xl font-extrabold text-white flex-1" lineNumber={2}>
+              <Text className="text-2xl font-extrabold text-white flex-1" numberOfLines={2}>
                 {drama.title}
               </Text>
               <Pressable

@@ -53,8 +53,17 @@ export async function registerForPushNotificationsAsync() {
   }
 }
 
-export const notificationHandler = {
-  handleNotification: async (notification) => {
-    console.log('Notification received:', notification);
-  },
+export const setAppNotificationHandler = () => {
+  Notifications.setNotificationHandler({
+    handleNotification: async (notification: any) => {
+      console.log('Notification received:', notification);
+      return {
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      };
+    },
+  });
 };

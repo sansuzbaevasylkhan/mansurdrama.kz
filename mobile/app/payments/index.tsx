@@ -4,6 +4,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { FileText, Clock, CheckCircle, XCircle, AlertCircle, Loader2 } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
+import * as ImagePicker from "expo-image-picker";
+import { Button } from "@/components/ui/Button";
 
 type PaymentStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
@@ -76,6 +78,46 @@ export default function PaymentsScreen() {
         }
       }
     );
+  }
+
+  async function handleReupload(paymentId: string) {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+      });
+
+      if (result.canceled || !result.assets[0]) return;
+
+      setUploadingId(paymentId);
+      const file = result.assets[0];
+      const formData = new FormData();
+      formData.append('receipt', {
+        uri: file.uri,
+        name: `receipt_${paymentId}.jpg`,
+        type: 'image/jpeg',
+      } as any);
+
+      const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/payments/${paymentId}/receipt`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: formData,
+      });
+
+      if (res.ok) {
+        Alert.alert("Сәтті", "Чек сәтті жаңартылды!");
+        fetchPayments();
+      } else {
+        const err = await res.json();
+        Alert.alert("Қате", err.error || "Жаңарту мүмкін болмады");
+      }
+    } catch (e) {
+      Alert.alert("Қате", "Файлды таңдау кезінде қате кетті");
+    } finally {
+      setUploadingId(null);
+    }
   }
 
   const getStatusBadge = (status: PaymentStatus) => {

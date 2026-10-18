@@ -19,9 +19,10 @@ export const tokenStore = {
   },
 };
 
-export type ApiFetchOptions = RequestInit & {
+export type ApiFetchOptions = Omit<RequestInit, 'body'> & {
   json?: boolean;
   formData?: FormData;
+  body?: unknown;
 };
 
 export class ApiError extends Error {
@@ -54,7 +55,7 @@ export async function apiFetch<T = unknown>(
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...rest,
     headers: finalHeaders,
-    body: formData ?? (json && rest.body ? JSON.stringify(rest.body) : rest.body),
+    body: formData ?? (json && rest.body ? JSON.stringify(rest.body) : (rest.body as BodyInit)),
   });
 
   if (!res.ok) {

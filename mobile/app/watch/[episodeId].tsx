@@ -15,6 +15,7 @@ import {
 import { formatDuration } from "@/lib/utils";
 import { watchHistoryApi } from "@/lib/endpoints";
 import { useUser } from "@/lib/user-store";
+import { Image } from "expo-image";
 
 /**
  * Толық экранды бөлім ойнатқышы (TikTok/Reels стилінде).
@@ -44,6 +45,7 @@ export default function WatchScreen() {
     p.loop = false;
     p.muted = muted;
   });
+  const videoViewRef = useRef<VideoView>(null);
 
   useEffect(() => {
     if (!user || !params.episodeId) {
@@ -140,13 +142,23 @@ export default function WatchScreen() {
 
       <Pressable className="absolute inset-0" onPress={toggleControls}>
         {resumeReady ? (
-          <VideoView
-            player={player}
-            contentFit="contain"
-            poster={params.posterUrl ? { uri: params.posterUrl } : undefined}
-            style={{ width: "100%", height: "100%", backgroundColor: "#000" }}
-            nativeControls={false}
-          />
+          <View className="relative w-full h-full">
+            <VideoView
+              ref={videoViewRef}
+              player={player}
+              contentFit="contain"
+              style={{ width: "100%", height: "100%", backgroundColor: "#000" }}
+              nativeControls={false}
+            />
+            {params.posterUrl && (
+              <Image
+                source={{ uri: params.posterUrl }}
+                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+                contentFit="cover"
+                className="absolute inset-0"
+              />
+            )}
+          </View>
         ) : null}
       </Pressable>
 
@@ -241,7 +253,7 @@ export default function WatchScreen() {
               <View className="flex-1" />
               <Pressable
                 onPress={() => {
-                  player.presentFullscreenPlayer();
+                  videoViewRef.current?.enterFullscreen();
                 }}
                 className="p-1.5"
               >

@@ -4,7 +4,7 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { View, Text, Platform } from "react-native";
 import * as Notifications from 'expo-notifications';
-import { registerForPushNotificationsAsync } from '@/lib/notifications';
+import { registerForPushNotificationsAsync, setAppNotificationHandler } from '@/lib/notifications';
 import { useNetwork } from '@/lib/useNetwork';
 import { NetworkStatusBar } from '@/components/ui/NetworkStatusBar';
 import * as NavigationBar from 'expo-navigation-bar';
@@ -17,16 +17,8 @@ import Constants from 'expo-constants';
 import { ForceUpdateScreen } from '@/components/ForceUpdateScreen';
 import * as Sentry from "@sentry/react-native";
 
-// Configure how notifications are handled when the app is foregrounded
-Notifications.setNotificationHandler({
-  handleNotification: async () => {
-    return {
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: false,
-    };
-  },
-});
+// Notification handler is now set via setAppNotificationHandler in the layout
+setAppNotificationHandler();
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -126,8 +118,7 @@ export default function RootLayout() {
     // 3. Fullscreen Mode Configuration (Android)
     if (Platform.OS === 'android') {
       try {
-        if (NavigationBar && typeof NavigationBar.setBehaviorAsync === 'function') {
-          NavigationBar.setBehaviorAsync('inset-touch').catch(e => console.error('NavigationBar setBehaviorAsync error:', e));
+        if (NavigationBar && typeof NavigationBar.setVisibilityAsync === 'function') {
           NavigationBar.setVisibilityAsync('hidden').catch(e => console.error('NavigationBar setVisibilityAsync error:', e));
         }
       } catch (e) {

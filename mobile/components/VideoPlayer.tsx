@@ -1,7 +1,7 @@
-import { View, Text, Pressable, ActivityIndicator } from "react-native";
+import { View, Text, Pressable, ActivityIndicator, Image } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { Play, Pause, Volume2, VolumeX, Maximize } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { formatDuration } from "@/lib/utils";
 
 interface Props {
@@ -12,6 +12,7 @@ interface Props {
 }
 
 export function VideoPlayer({ videoUrl, posterUrl, title, onLocked }: Props) {
+  const videoRef = useRef<VideoView>(null);
   const player = useVideoPlayer(videoUrl, (player) => {
     player.loop = false;
     player.muted = true;
@@ -19,10 +20,16 @@ export function VideoPlayer({ videoUrl, posterUrl, title, onLocked }: Props) {
 
   const [showControls, setShowControls] = useState(true);
   const [muted, setMuted] = useState(true);
+  const [showPoster, setShowPoster] = useState(true);
 
   useEffect(() => {
-    player.muted = muted;
-  }, [muted, player]);
+    const subscription = player.addListener('statusChange', (payload) => {
+      if (payload.status === 'readyToPlay' || player.playing) {
+        setShowPoster(false);
+      }
+    });
+    return () => subscription.remove();
+  }, [player]);
 
   const togglePlay = () => {
     if (player.playing) {
@@ -45,12 +52,19 @@ export function VideoPlayer({ videoUrl, posterUrl, title, onLocked }: Props) {
       className="relative aspect-[9/16] w-full overflow-hidden rounded-2xl border border-white/10 bg-black"
     >
       <VideoView
+        ref={videoRef}
         player={player}
         contentFit="cover"
-        poster={posterUrl ? { uri: posterUrl } : undefined}
         style={{ width: "100%", height: "100%", backgroundColor: "#000" }}
         nativeControls={false}
       />
+      {showPoster && posterUrl && (
+        <Image
+          source={{ uri: posterUrl }}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+          resizeMode="cover"
+        />
+      )}
 
       {isLoading ? (
         <View
@@ -106,8 +120,7 @@ export function VideoPlayer({ videoUrl, posterUrl, title, onLocked }: Props) {
             <View className="flex-1" />
             <Pressable
               onPress={() => {
-                // expo-video handle fullscreen automatically or via player
-                player.presentFullscreenPlayer();
+                videoRef.current?.enterFullscreen();
               }}
               className="p-1.5"
             >

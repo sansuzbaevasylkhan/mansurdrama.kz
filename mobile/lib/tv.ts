@@ -2,23 +2,25 @@
  * NativeWind-де tv() ресми жоқ, сондықтан clsx-ке негізделген қарапайым helper.
  */
 import { clsx, type ClassValue } from "clsx";
-export type Variants<V extends Record<string, Record<string, ClassValue[]>>> = V;
-export function tv<T extends Record<string, Record<string, ClassValue[]>>>(config: {
+
+export function tv<T extends Record<string, Record<string, ClassValue>>>(config: {
   base?: ClassValue;
   variants: T;
-  defaultVariants: { [K in keyof T]?: keyof T[K] };
+  defaultVariants: Record<string, string>;
 }) {
-  return (props?: { [K in keyof T]?: keyof T[K] } & { className?: ClassValue }) => {
-    const merged: ClassValue[] = [config.base];
+  return (props?: Record<string, string> & { className?: ClassValue }) => {
+    const merged: ClassValue[] = [];
+    if (config.base) merged.push(config.base);
+
     const pv = props ?? {};
-    for (const key of Object.keys(config.variants) as (keyof T)[]) {
-      const variantKey =
-        (pv[key] as keyof T[typeof key]) ?? config.defaultVariants[key];
-      if (variantKey) {
-        const classes = config.variants[key][variantKey as string];
-        if (classes) merged.push(...classes);
+
+    for (const key in config.variants) {
+      const variantKey = pv[key] || config.defaultVariants[key];
+      if (variantKey && config.variants[key][variantKey]) {
+        merged.push(config.variants[key][variantKey]);
       }
     }
+
     if (pv.className) merged.push(pv.className);
     return clsx(...merged);
   };

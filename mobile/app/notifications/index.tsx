@@ -64,14 +64,14 @@ export default function NotificationsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-dark-950 items-center justify-center">
+      <SafeView className="flex-1 bg-dark-950 items-center justify-center">
         <ActivityIndicator color="#ec4899" />
-      </SafeAreaView>
+      </SafeView>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-dark-950" edges={["top"]}>
+    <SafeView className="flex-1 bg-dark-950" edges={["top"]}>
       <View className="px-4 py-3 flex-row items-center justify-between border-b border-white/10">
         <View className="flex-row items-center gap-3">
           <Pressable onPress={() => router.back()} className="p-2 rounded-full bg-white/5">
@@ -126,6 +126,6 @@ export default function NotificationsScreen() {
           ))
         )}
       </ScrollView>
-    </SafeAreaView>
+    </SafeView>
   );
 }

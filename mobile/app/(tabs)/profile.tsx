@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { View, Text, Pressable, Alert, ScrollView, Image } from "react-native";
+import { Image as ExpoImage } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { LogOut, Mail, User as UserIcon, Tv, Clock, Heart, Play } from "lucide-react-native";
+import { LogOut, Mail, User as UserIcon, Tv, Clock, Heart, Play, Wallet } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "@/context/AuthContext";
 import { watchHistoryApi } from "@/lib/endpoints";
@@ -197,7 +198,7 @@ export default function ProfileScreen() {
                     style={{ backgroundColor: "rgba(255,255,255,0.02)" }}
                   >
                     <View className="h-16 w-12 rounded-xl overflow-hidden bg-white/5">
-                      <Image
+                      <ExpoImage
                         source={{ uri: item.drama.posterUrl }}
                         style={{ width: "100%", height: "100%" }}
                         contentFit="cover"

@@ -46,11 +46,11 @@ export default function AuthScreen() {
     try {
       if (mode === "login") {
         const res = await login(email.trim(), password);
-        if (!res.success) setError(res.error);
+        if (!res.success) setError(res.error ?? null);
         else router.back();
       } else {
         const res = await register(name.trim(), email.trim(), password);
-        if (!res.success) setError(res.error);
+        if (!res.success) setError(res.error ?? null);
         else router.back();
       }
     } catch (e: any) {

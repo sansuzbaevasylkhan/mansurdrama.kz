@@ -102,7 +102,7 @@ export default function SplashScreen() {
         opacity: screenOpacity,
       }}
     >
-      <StatusBar style="light" backgroundColor="#0a0a10" />
+      <StatusBar style="light" />
 
       {/* Жарқыраған фон әсері (glow) */}
       <Animated.View

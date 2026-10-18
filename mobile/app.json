@@ -47,7 +47,9 @@
       "expo-image",
       "expo-status-bar",
       "expo-video",
-      "expo-audio"
+      "expo-audio",
+      "expo-font",
+      "@sentry/react-native"
     ],
     "extra": {
       "router": {
