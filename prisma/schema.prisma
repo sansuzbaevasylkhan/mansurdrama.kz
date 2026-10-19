@@ -8,45 +8,26 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-enum PaymentStatus {
-  PENDING
-  APPROVED
-  REJECTED
-}
-
-enum EpisodeStatus {
-  DRAFT
-  SCHEDULED
-  PUBLISHED
-}
-
-enum RefundStatus {
-  PENDING
-  APPROVED
-  REJECTED
-}
-
 model Drama {
-  id                String    @id @default(cuid())
+  id                String            @id @default(cuid())
   title             String
-  slug              String    @unique
+  slug              String            @unique
   description       String?
   posterUrl         String
-  totalEpisodes     Int       @default(0)
-  freeEpisodesCount Int       @default(0) // Тегін көрсетілетін сериялар саны
-  views             Int       @default(0)
-  rating            Float     @default(0)
-  isPublished       Boolean   @default(true)
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-
-  episodes        Episode[]
-  payments        Payment[]
-  unlockedContent UnlockedContent[]
-  watchHistory    WatchHistory[]
-  favorites       Favorite[]
-  watchProgress   WatchProgress[]
-  tariffDramas    TariffDrama[]
+  totalEpisodes     Int               @default(0)
+  freeEpisodesCount Int               @default(0)
+  views             Int               @default(0)
+  rating            Float             @default(0)
+  isPublished       Boolean           @default(true)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  episodes          Episode[]
+  favorites         Favorite[]
+  payments          Payment[]
+  tariffDramas      TariffDrama[]
+  unlockedContent   UnlockedContent[]
+  watchHistory      WatchHistory[]
+  watchProgress     WatchProgress[]
 
   @@index([slug])
   @@index([createdAt])
@@ -54,29 +35,27 @@ model Drama {
 }
 
 model Episode {
-  id            String        @id @default(cuid())
+  id            String          @id @default(cuid())
   episodeNumber Int
   title         String
   videoUrl      String
   playbackId    String?
   muxAssetId    String?
   muxUploadId   String?
-  duration      Int           @default(0)
+  duration      Int             @default(0)
   thumbnail     String?
-  views         Int           @default(0)
-  status        EpisodeStatus @default(PUBLISHED)
+  views         Int             @default(0)
+  status        EpisodeStatus   @default(PUBLISHED)
   publishAt     DateTime?
   publishedAt   DateTime?
   notifiedAt    DateTime?
   scheduledAt   DateTime?
-  isPublished   Boolean       @default(false)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  dramaId String
-  drama   Drama @relation(fields: [dramaId], references: [id], onDelete: Cascade)
-
-  watchHistory WatchHistory[]
+  isPublished   Boolean         @default(false)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  dramaId       String
+  drama         Drama           @relation(fields: [dramaId], references: [id], onDelete: Cascade)
+  watchHistory  WatchHistory[]
   watchProgress WatchProgress[]
 
   @@unique([dramaId, episodeNumber])
@@ -95,10 +74,9 @@ model WatchHistory {
   completed       Boolean  @default(false)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
-
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  drama   Drama   @relation(fields: [dramaId], references: [id], onDelete: Cascade)
-  episode Episode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  drama           Drama    @relation(fields: [dramaId], references: [id], onDelete: Cascade)
+  episode         Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, episodeId])
   @@index([userId, updatedAt])
@@ -106,65 +84,61 @@ model WatchHistory {
 }
 
 model User {
-  id                String   @id @default(cuid())
-  name              String
-  email             String   @unique
-  avatar            String?
-  banner            String?
-  passwordHash      String?
-  password           String?
-  role              String   @default("USER")
-  notifyNewEpisodes Boolean  @default(true)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                  String               @id @default(cuid())
+  name                String
+  email               String               @unique
+  avatar              String?
+  banner              String?
+  passwordHash        String?
+  role                String               @default("USER")
+  notifyNewEpisodes   Boolean              @default(true)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
   freeEndedNotifiedAt DateTime?
-
-  refunds       RefundRequest[]
-  payments       Payment[]
-  unlockedContent UnlockedContent[]
-  watchHistory    WatchHistory[]
-  notifications   Notification[]
-  pushTokens     PushToken[]
-  settings       NotificationSetting?
-  favorites       Favorite[]
-  watchProgress   WatchProgress[]
+  favorites           Favorite[]
+  notifications       Notification[]
+  settings            NotificationSetting?
+  payments            Payment[]
+  pushTokens          PushToken[]
+  refunds             RefundRequest[]
+  unlockedContent     UnlockedContent[]
+  watchHistory        WatchHistory[]
+  watchProgress       WatchProgress[]
 
   @@index([email])
   @@index([createdAt])
 }
 
 model RefundRequest {
-  id                String      @id @default(cuid())
-  paymentId         String      @unique
-  userId            String
-  reason            String
-  status            RefundStatus @default(PENDING)
-  adminComment      String?
-  manuallyRefunded  Boolean     @default(false)
-  resolvedAt        DateTime?
+  id               String       @id @default(cuid())
+  paymentId        String       @unique
+  userId           String
+  reason           String
+  status           RefundStatus @default(PENDING)
+  adminComment     String?
+  manuallyRefunded Boolean      @default(false)
+  resolvedAt       DateTime?
   resolvedBy       String?
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
-
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  payment Payment @relation(fields: [paymentId], references: [id])
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  payment          Payment      @relation(fields: [paymentId], references: [id])
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([status])
 }
 
 model Notification {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
   title     String
   body      String
-  type      String   // PAYMENT | EPISODE | SYSTEM
+  type      String
   payload   Json?
-  isRead    Boolean  @default(false)
+  isRead    Boolean   @default(false)
   readAt    DateTime?
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isRead])
 }
@@ -173,31 +147,28 @@ model PushToken {
   id         String   @id @default(cuid())
   userId     String
   token      String   @unique
-  deviceType String?  // ios | android
+  deviceType String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([token])
   @@index([userId])
 }
 
 model NotificationSetting {
-  userId         String  @id
-  payments       Boolean @default(true)
-  newEpisodes    Boolean @default(true)
-  promos         Boolean @default(true)
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String  @id
+  payments    Boolean @default(true)
+  newEpisodes Boolean @default(true)
+  promos      Boolean @default(true)
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Favorite {
   userId  String
   dramaId String
-
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  drama Drama @relation(fields: [dramaId], references: [id], onDelete: Cascade)
+  drama   Drama  @relation(fields: [dramaId], references: [id], onDelete: Cascade)
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, dramaId])
   @@index([userId])
@@ -210,10 +181,9 @@ model WatchProgress {
   dramaId   String
   seconds   Int      @default(0)
   updatedAt DateTime @updatedAt
-
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  episode Episode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
-  drama   Drama   @relation(fields: [dramaId], references: [id], onDelete: Cascade)
+  drama     Drama    @relation(fields: [dramaId], references: [id], onDelete: Cascade)
+  episode   Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, episodeId])
   @@index([userId])
@@ -221,59 +191,55 @@ model WatchProgress {
 }
 
 model AppConfig {
-  id                      String @id @default("singleton")
+  id                      String   @id @default("singleton")
   latestVersion           String
   minimumSupportedVersion String
-  forceUpdate             Boolean @default(false)
+  forceUpdate             Boolean  @default(false)
   storeUrl                String
   message                 String?
   updatedAt               DateTime @updatedAt
 }
 
 model Tariff {
-  id           String   @id @default(cuid())
-  name         String   // Мысалы: "Келесі серияны ашу" немесе "Толық пакет"
-  price        Float
-  discountPercent Int    @default(0)
-  validUntil   DateTime?
-  paymentPhone String?  // Kaspi төлем жасау нөмірі
-  description  String?
-  isActive     Boolean  @default(true)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  payments     Payment[]
-  tariffDramas TariffDrama[]
+  id              String        @id @default(cuid())
+  name            String
+  price           Float
+  discountPercent Int           @default(0)
+  validUntil      DateTime?
+  paymentPhone    String?
+  description     String?
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  payments        Payment[]
+  tariffDramas    TariffDrama[]
 }
 
 model Payment {
-  id            String        @id @default(cuid())
-  userId        String
-  dramaId       String
-  tariffId      String        // Қай тариф таңдалды
-  type          String        // SINGLE_EPISODE | FULL_PACKAGE
-  episodeNumber Int?
-  receiptPdfUrl String
-  receiptHash   String?
-  kaspiNumber   String
-  amount        Int           @default(0)
-  status        PaymentStatus @default(PENDING)
-  rejectReason  String?
-  reviewedBy    String?
-  reviewedAt    DateTime?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  // Upgrade system fields
+  id                   String         @id @default(cuid())
+  userId               String
+  dramaId              String
+  tariffId             String
+  type                 String
+  episodeNumber        Int?
+  receiptPdfUrl        String
+  receiptHash          String?
+  kaspiNumber          String
+  amount               Int            @default(0)
+  status               PaymentStatus  @default(PENDING)
+  rejectReason         String?
+  reviewedBy           String?
+  reviewedAt           DateTime?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  isUpgraded           Boolean        @default(false)
   upgradeFromPaymentId String?
-  isUpgraded           Boolean  @default(false)
-  upgradedFrom         Payment? @relation("PaymentUpgrade", fields: [upgradeFromPaymentId], references: [id])
-  upgradedTo           Payment[] @relation("PaymentUpgrade")
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  drama  Drama  @relation(fields: [dramaId], references: [id], onDelete: Cascade)
-  tariff Tariff @relation(fields: [tariffId], references: [id])
-  refund RefundRequest?
+  drama                Drama          @relation(fields: [dramaId], references: [id], onDelete: Cascade)
+  tariff               Tariff         @relation(fields: [tariffId], references: [id])
+  upgradedFrom         Payment?       @relation("PaymentUpgrade", fields: [upgradeFromPaymentId], references: [id])
+  upgradedTo           Payment[]      @relation("PaymentUpgrade")
+  user                 User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refund               RefundRequest?
 
   @@index([status])
   @@index([userId])
@@ -284,9 +250,8 @@ model Payment {
 model TariffDrama {
   tariffId String
   dramaId  String
-
-  tariff Tariff @relation(fields: [tariffId], references: [id], onDelete: Cascade)
-  drama  Drama @relation(fields: [dramaId], references: [id], onDelete: Cascade)
+  drama    Drama  @relation(fields: [dramaId], references: [id], onDelete: Cascade)
+  tariff   Tariff @relation(fields: [tariffId], references: [id], onDelete: Cascade)
 
   @@id([tariffId, dramaId])
   @@index([dramaId])
@@ -296,13 +261,30 @@ model UnlockedContent {
   id            String   @id @default(cuid())
   userId        String
   dramaId       String
-  episodeNumber Int?     // null = FULL_PACKAGE (барлық эпизодтар ашық)
+  episodeNumber Int?
   createdAt     DateTime @default(now())
-
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  drama Drama @relation(fields: [dramaId], references: [id], onDelete: Cascade)
+  drama         Drama    @relation(fields: [dramaId], references: [id], onDelete: Cascade)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, dramaId, episodeNumber])
   @@index([userId])
   @@index([dramaId])
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum EpisodeStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+}
+
+enum RefundStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
