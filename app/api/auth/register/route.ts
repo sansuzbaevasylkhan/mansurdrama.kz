@@ -64,6 +64,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     console.error('Registration error:', err);
-    return NextResponse.json({ error: 'Сервер қатесі' }, { status: 500 });
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Сервер қатесі' }, { status: 500 });
   }
 }

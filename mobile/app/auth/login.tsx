@@ -54,6 +54,7 @@ export default function AuthScreen() {
         else router.back();
       }
     } catch (e: any) {
+      console.log("Registration Catch Error:", e);
       setError(e?.message ?? "Қате орын алды");
     }
   };
